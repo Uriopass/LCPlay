@@ -108,10 +108,10 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movet
 			io.WriteString(p.Input, "go movetime"+movetime+"\n")
 
 			select {
-			case best_move := <-p.BestMove:
-				pgnBestMovesChan <- best_move
-			case <-time.After(10 * time.Second):
-				pgnBestMovesChan <- "timeout"
+				case best_move := <-p.BestMove:
+					pgnBestMovesChan <- best_move
+				case <-time.After(10 * time.Second):
+					pgnBestMovesChan <- "timeout"
 			}
 		}
 	}()

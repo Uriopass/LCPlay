@@ -33,7 +33,7 @@
             <b> If you want to help making Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b>
         </p>
         <p style="color: white">
-            <b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (about 2 seconds instead of 200ms). In exchange you have to wait 20 seconds to play not to overload the server.
+            <b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (about 2 seconds instead of 200ms). In exchange you have to wait 10 seconds to play not to overload the server.
         </p>
 
         <div style="width: 400px; margin-left: auto; margin-right: auto;">
@@ -101,8 +101,8 @@
 						if (useSlow) {
 							canMove = false;
 							$("#move2Btn").attr("disabled", true);
-							var counter = 20;
-							for (var i = 0; i <= 20; i++) {
+							var counter = 10;
+							for (var i = 0; i <= 10; i++) {
 								setTimeout(function() {
 									$("#timeLeft").html(counter + "s");
 									counter -= 1;
@@ -114,7 +114,7 @@
 							setTimeout(function() {
 								canMove = true;
 								$("#move2Btn").attr("disabled", false);
-							}, 20000);
+							}, 10000);
 						}
 					}
 				}
