@@ -24,20 +24,23 @@
 	<h1 style="text-align:center; color: white"> Currently playing Leela Chess Zero using network id 23 </h1>
 	<hr/>
 <div style="text-align: center;width=400px">
+<p style="color: white"><b><span id="status" ></span></b></p>
+	
 	<div id="board" style="margin-left: auto; margin-right: auto; width: 400px"></div>
 		
 	<input type="button" id="startPositionBtn" value="Restart Game" />
 	<input type="button" id="move1Btn" value="Leela: Enabled" />
 	<input type="button" id="move2Btn" value="Force Leela Move" />
 	<input type="button" id="slowBtn" value="Enable Slow Mode" />
+	<input type="button" id="flipBtn" value="Flip the board" />
+	<input type="button" id="promoteBtn" value="Will promote to: Queen" />
 	
 	<p style="color: white"><b> If you want to help making Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b></p>
 	<p style="color: white"><b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (about 2 seconds instead of 200ms). In exchange you have to wait 20 seconds to play not to overload the server.</p>
-	<p style="color: white">Status: <span id="status" ></span></p>
-	<p style="color: white">Time left before playing: <span id="timeLeft" ></span></p>
-	
-	<div style="width: 400px; margin-left: auto; margin-right: auto;">
-		<p style="color: white; text-align: left">History: <br /><span id="history" ></span></p>
+
+	<div style="width: 400px; margin-left: auto; margin-right: auto;">	
+		<p style="color: white; text-align: left">Time left before playing: <span id="timeLeft">0s</span></p>
+		<p style="color: white; text-align: left"><b>History: </b><br /><span id="history" ></span></p>
 	</div>
 	<script src="js/json3.min.js"></script>
 	<script src="js/jquery-1.10.1.min.js"></script>
@@ -45,14 +48,15 @@
 	<script src="js/chess.min.js"></script>
 	<script>
 		var init = function() {
-			var board,
-			  game = new Chess(),
-			  statusEl = $('#status'),
-			  historyEl = $('#history'),
-			  history = "";
+			var board;
+			var game = new Chess();
+			var statusEl = $('#status');
+			var historyEl = $('#history');
+			var history = "";
 			var enabled = true;
 			var useSlow = false;
 			var canMove = true;
+			var promotePiece = "q";
 
 			// do not pick up pieces if the game is over
 			// only pick up pieces for the side to move
@@ -72,12 +76,12 @@
 			  var move = game.move({
 				from: source,
 				to: target,
-				promotion: 'q' // NOTE: always promote to a queen for example simplicity
+				promotion: promotePiece
 			  });
 			  // illegal move
 			  if (move === null) return 'snapback';
 			  if('promotion' in move) {
-				target += "q";
+				target += move.promotion;
 			  }
 			  history += source+target+" ";
 			  updateStatus();
@@ -107,9 +111,17 @@
 				var move = httpGet(askUrl+"?pgn="+historyStr);
 				from_sq = move[0] + move[1];
 				to_sq = move[2]+move[3];
+				var oldPromote = promotePiece;
+				if(move.length > 4) {
+					if(move[5] == "=")
+						promotePiece = move[6];
+					else
+						promotePiece = move[5];
+				}
 				
 				onDrop(from_sq, to_sq);
 				board.position(game.fen());
+				promotePiece = oldPromote;
 				
 				if(useSlow) {
 					canMove = false;
@@ -165,7 +177,6 @@
 			  for(var i = 1; ; i += 1) {
 				pos = pgn.indexOf(i+".");
 				next = pgn.indexOf((i+1)+".");
-				console.log(i+" "+pos+" "+next);
 				
 				if(next == -1) {
 				  htmlStr += pgn.substring(pos, pgn.length) +" <br />";
@@ -176,7 +187,6 @@
 			  }
 			  
 			  historyEl.html(htmlStr);
-			  
 			};
 
 			var cfg = {
@@ -197,7 +207,7 @@
 				board.start();
 				updateStatus();
 			});
-
+			$('#flipBtn').on('click', board.flip);
 			$('#move1Btn').on('click', function() {
 				if(enabled) {
 					$('#move1Btn').attr("value", "Leela: Disabled");
@@ -216,6 +226,26 @@
 				
 				}
 				useSlow = !useSlow;
+			});
+			
+			$('#promoteBtn').on('click', function() {
+				var newName;
+				if(promotePiece == "q") {
+					newName = "Rook";
+					promotePiece = "r";
+				} else if(promotePiece == "r") {
+					newName = "Bishop";
+					promotePiece = "b";
+				} else if(promotePiece == "b") {
+					newName = "Knight";
+					promotePiece = "n";
+				} else if(promotePiece == "n") {
+					newName = "Queen";
+					promotePiece = "q";
+				}
+			
+			
+				$('#promoteBtn').attr("value", "Will promote to: "+newName);
 			});
 			
 			$('#move2Btn').on('click', function() {

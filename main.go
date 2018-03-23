@@ -97,7 +97,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movet
 	go func() {
 		for pgn := range pgnWaitListChan {
 			if len(pgn) > 1 {
-				log.Println("position startpos moves " + pgn + " \n")
+				log.Println("position startpos moves " + pgn)
 				io.WriteString(p.Input, "position startpos moves "+pgn+" \n")
 			} else {
 				log.Println("position startpos")
@@ -149,7 +149,7 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 
 func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET", r.URL.Query())
+		log.Println("GET From ", r.RemoteAddr, ": ", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitListSlow <- pgn
@@ -161,13 +161,14 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	pathToDatas = "./Data/"
 	if len(os.Args) >= 2 {
-		pathToDatas = os.Args[1]
-	} else {
-		pathToDatas = "./Data/"
+		logFilePath = os.Args[1]
+		f, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+		if err == nil {
+			log.SetOutput(f)
+		}
 	}
-
-	log.Println("Using path to datas : ", pathToDatas)
 	defaultMux := http.NewServeMux()
 	defaultMux.HandleFunc("/", defaultHandler)
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
