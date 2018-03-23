@@ -155,7 +155,7 @@ func main() {
 	defaultMux.HandleFunc("/", defaultHandler)
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	p = CmdWrapper{}
-	p.launch("networks/9824", nil, true)
+	p.launch("networks/3857", nil, true)
 	defer p.Input.Close()
 
 	http.ListenAndServe(":80", defaultMux)
