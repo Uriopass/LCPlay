@@ -1,262 +1,275 @@
 <html>
+
 <head>
     <meta name="description" content="LCPlay - Play against LCZero from your browser">
-	<title> Play against LC0 ! </title>
-	<link rel="stylesheet" href="css/chessboard.css" />
+    <title> Play against LC0 ! </title>
+    <link rel="stylesheet" href="css/chessboard.css" />
 </head>
+
 <body>
     <style>
-    html {
-        background-color: rgb(100, 100, 100);
-        font-family: "helvetica";
-    }
+        html {
+            background-color: rgb(100, 100, 100);
+            font-family: "helvetica";
+        }
     </style>
     <script type="text/javascript">
-		function httpGet(theUrl)
-		{
-			console.log("Sending request "+theUrl);
-			var xmlHttp = new XMLHttpRequest();
-			xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
-			xmlHttp.send( null );
-			return xmlHttp.responseText;
-		}
     </script>
-	<h1 style="text-align:center; color: white"> Currently playing Leela Chess Zero using network id 23 </h1>
-	<hr/>
-<div style="text-align: center;width=400px">
-<p style="color: white"><b><span id="status" ></span></b></p>
-	
-	<div id="board" style="margin-left: auto; margin-right: auto; width: 400px"></div>
-		
-	<input type="button" id="startPositionBtn" value="Restart Game" />
-	<input type="button" id="move1Btn" value="Leela: Enabled" />
-	<input type="button" id="move2Btn" value="Force Leela Move" />
-	<input type="button" id="slowBtn" value="Enable Slow Mode" />
-	<input type="button" id="flipBtn" value="Flip the board" />
-	<input type="button" id="promoteBtn" value="Will promote to: Queen" />
-	
-	<p style="color: white"><b> If you want to help making Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b></p>
-	<p style="color: white"><b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (about 2 seconds instead of 200ms). In exchange you have to wait 20 seconds to play not to overload the server.</p>
+    <h1 style="text-align:center; color: white"> Currently playing Leela Chess Zero using network id 23 </h1>
+    <hr/>
+    <div style="text-align: center;width=400px">
+        <p style="color: white"><b><span id="status" ></span></b></p>
 
-	<div style="width: 400px; margin-left: auto; margin-right: auto;">	
-		<p style="color: white; text-align: left">Time left before playing: <span id="timeLeft">0s</span></p>
-		<p style="color: white; text-align: left"><b>History: </b><br /><span id="history" ></span></p>
-	</div>
-	<script src="js/json3.min.js"></script>
-	<script src="js/jquery-1.10.1.min.js"></script>
-	<script src="js/chessboard.js"></script>
-	<script src="js/chess.min.js"></script>
-	<script>
-		var init = function() {
-			var board;
-			var game = new Chess();
-			var statusEl = $('#status');
-			var historyEl = $('#history');
-			var history = "";
-			var enabled = true;
-			var useSlow = false;
-			var canMove = true;
-			var promotePiece = "q";
+        <div id="board" style="margin-left: auto; margin-right: auto; width: 400px"></div>
 
-			// do not pick up pieces if the game is over
-			// only pick up pieces for the side to move
-			var onDragStart = function(source, piece, position, orientation) {
-			  if (game.game_over() === true ||
-				  (game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-				  (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-				return false;
-			  }
-			};
+        <input type="button" id="startPositionBtn" value="Restart Game" />
+        <input type="button" id="move1Btn" value="Leela: Enabled" />
+        <input type="button" id="move2Btn" value="Force Leela Move" />
+        <input type="button" id="slowBtn" value="Enable Slow Mode" />
+        <input type="button" id="flipBtn" value="Flip the board" />
+        <input type="button" id="promoteBtn" value="Will promote to: Queen" />
 
-			var onDrop = function(source, target) {
-			  if(!canMove) {
-				return;
-			  }
-			  // see if the move is legal
-			  var move = game.move({
-				from: source,
-				to: target,
-				promotion: promotePiece
-			  });
-			  // illegal move
-			  if (move === null) return 'snapback';
-			  if('promotion' in move) {
-				target += move.promotion;
-			  }
-			  history += source+target+" ";
-			  updateStatus();
-			};
+        <p style="color: white">
+            <b> If you want to help making Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b>
+        </p>
+        <p style="color: white">
+            <b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (about 2 seconds instead of 200ms). In exchange you have to wait 20 seconds to play not to overload the server.
+        </p>
 
-			// update the board position after the piece snap 
-			// for castling, en passant, pawn promotion
-			var onSnapEnd = function() {
-			  board.position(game.fen());
-			  if(enabled && canMove) {
-				playComputer();
-			  }
-			};
-			
-			var playComputer = function() {
-				if(!canMove)
-					return;
-				var askUrl = "getMove";
-				if(useSlow) {
-					askUrl = "getMoveSlow";
-				}
-				var historyStr = history;
-				if(history == "") {
-					historyStr = "0";
-				}
-				$("#status").html("Leela is thinking...");
-				var move = httpGet(askUrl+"?pgn="+historyStr);
-				from_sq = move[0] + move[1];
-				to_sq = move[2]+move[3];
-				var oldPromote = promotePiece;
-				if(move.length > 4) {
-					if(move[5] == "=")
-						promotePiece = move[6];
-					else
-						promotePiece = move[5];
-				}
-				
-				onDrop(from_sq, to_sq);
-				board.position(game.fen());
-				promotePiece = oldPromote;
-				
-				if(useSlow) {
-					canMove = false;
-					$("#move2Btn").attr("disabled", true);
-					var counter = 20;
-					for(var i = 0; i <= 20 ; i++) {
-						setTimeout(function() {
-							$("#timeLeft").html(counter+"s");
-							counter -= 1;
-							if(canMove) {
-								$("#status").html("Y u modify javascript :'( Doing it serverside is horrible");
-							}
-						}, i*1000);
-					}
-					setTimeout(function() {
-						canMove = true;
-						$("#move2Btn").attr("disabled", false);
-					}, 20000);
-				}
-			};
+        <div style="width: 400px; margin-left: auto; margin-right: auto;">
+            <p style="color: white; text-align: left">
+                Time left before playing: <span id="timeLeft">0s</span>
+            </p>
+            <p style="color: white; text-align: left">
+                <b>History: </b><br /><span id="history"></span>
+            </p>
+        </div>
 
-			var updateStatus = function() {
-			  var status = '';
 
-			  var moveColor = 'White';
-			  if (game.turn() === 'b') {
-				moveColor = 'Black';
-			  }
+        <script src="js/json3.min.js"></script>
+        <script src="js/jquery-1.10.1.min.js"></script>
+        <script src="js/chessboard.js"></script>
+        <script src="js/chess.min.js"></script>
+        <script>
+            function httpGet(theUrl) {
+                console.log("Sending request " + theUrl);
+                var xmlHttp = new XMLHttpRequest();
+                xmlHttp.open("GET", theUrl, false); // false for synchronous request
+                xmlHttp.send(null);
+                return xmlHttp.responseText;
+            }
 
-			  // checkmate?
-			  if (game.in_checkmate() === true) {
-				status = 'Game over, ' + moveColor + ' is in checkmate.';
-			  }
+            var init = function() {
+                var board;
+                var game = new Chess();
+                var statusEl = $('#status');
+                var historyEl = $('#history');
+                var history = "";
+                var enabled = true;
+                var useSlow = false;
+                var canMove = true;
+                var promotePiece = "q";
 
-			  // draw?
-			  else if (game.in_draw() === true) {
-				status = 'Game over, drawn position';
-			  }
+                // do not pick up pieces if the game is over
+                // only pick up pieces for the side to move
+                var onDragStart = function(source, piece, position, orientation) {
+                    if (game.game_over() === true ||
+                        (game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                        return false;
+                    }
+                };
 
-			  // game still on
-			  else {
-				status = moveColor + ' to move';
+                var onDrop = function(source, target) {
+                    if (!canMove) {
+                        return;
+                    }
+                    // see if the move is legal
+                    var move = game.move({
+                        from: source,
+                        to: target,
+                        promotion: promotePiece
+                    });
+                    // illegal move
+                    if (move === null) return 'snapback';
+                    if ('promotion' in move) {
+                        target += move.promotion;
+                    }
+                    history += source + target + " ";
+                    updateStatus();
+                };
 
-				// check?
-				if (game.in_check() === true) {
-				  status += ', ' + moveColor + ' is in check';
-				}
-			  }
-			  statusEl.html(status);
-			  var htmlStr = "";
-			  var pgn = game.pgn();
-			  console.log(pgn);
-			  for(var i = 1; ; i += 1) {
-				pos = pgn.indexOf(i+".");
-				next = pgn.indexOf((i+1)+".");
-				
-				if(next == -1) {
-				  htmlStr += pgn.substring(pos, pgn.length) +" <br />";
-				  break;
-				} else {
-				  htmlStr += pgn.substring(pos, next) +" <br />";
-				}
-			  }
-			  
-			  historyEl.html(htmlStr);
-			};
+                // update the board position after the piece snap 
+                // for castling, en passant, pawn promotion
+                var onSnapEnd = function() {
+                    board.position(game.fen());
+                    if (enabled && canMove) {
+                        playComputer();
+                    }
+                };
 
-			var cfg = {
-			  draggable: true,
-			  position: 'start',
-			  onDragStart: onDragStart,
-			  onDrop: onDrop,
-			  onSnapEnd: onSnapEnd
-			};
-			
-			board = ChessBoard('board', cfg);
+                var playComputer = function() {
+                    if (!canMove)
+                        return;
+                    var askUrl = "getMove";
+                    if (useSlow) {
+                        askUrl = "getMoveSlow";
+                    }
+                    var historyStr = history;
+                    if (history == "") {
+                        historyStr = "0";
+                    }
+                    $("#status").html("Leela is thinking...");
+                    var move = httpGet(askUrl + "?pgn=" + historyStr);
+                    from_sq = move[0] + move[1];
+                    to_sq = move[2] + move[3];
+                    var oldPromote = promotePiece;
+                    if (move.length > 4) {
+                        if (move[5] == "=")
+                            promotePiece = move[6];
+                        else
+                            promotePiece = move[5];
+                    }
 
-			updateStatus();
-			
-			$('#startPositionBtn').on('click', function() {
-				game = new Chess();
-				history = "";
-				board.start();
-				updateStatus();
-			});
-			$('#flipBtn').on('click', board.flip);
-			$('#move1Btn').on('click', function() {
-				if(enabled) {
-					$('#move1Btn').attr("value", "Leela: Disabled");
-				} else {
-					$('#move1Btn').attr("value", "Leela: Enabled");
-				
-				}
-				enabled = !enabled;
-			});
-			
-			$('#slowBtn').on('click', function() {
-				if(!useSlow) {
-					$('#slowBtn').attr("value", "Disable Slow Mode");
-				} else {
-					$('#slowBtn').attr("value", "Enable Slow Mode");
-				
-				}
-				useSlow = !useSlow;
-			});
-			
-			$('#promoteBtn').on('click', function() {
-				var newName;
-				if(promotePiece == "q") {
-					newName = "Rook";
-					promotePiece = "r";
-				} else if(promotePiece == "r") {
-					newName = "Bishop";
-					promotePiece = "b";
-				} else if(promotePiece == "b") {
-					newName = "Knight";
-					promotePiece = "n";
-				} else if(promotePiece == "n") {
-					newName = "Queen";
-					promotePiece = "q";
-				}
-			
-			
-				$('#promoteBtn').attr("value", "Will promote to: "+newName);
-			});
-			
-			$('#move2Btn').on('click', function() {
-				if(canMove) {
-					playComputer();
-				}
-			});
-		};
-		$(document).ready(init);
-	</script>
-</div>
+                    onDrop(from_sq, to_sq);
+                    board.position(game.fen());
+                    promotePiece = oldPromote;
+
+                    if (useSlow) {
+                        canMove = false;
+                        $("#move2Btn").attr("disabled", true);
+                        var counter = 20;
+                        for (var i = 0; i <= 20; i++) {
+                            setTimeout(function() {
+                                $("#timeLeft").html(counter + "s");
+                                counter -= 1;
+                                if (canMove) {
+                                    $("#status").html("Y u modify javascript :'( Doing it serverside is horrible");
+                                }
+                            }, i * 1000);
+                        }
+                        setTimeout(function() {
+                            canMove = true;
+                            $("#move2Btn").attr("disabled", false);
+                        }, 20000);
+                    }
+                };
+
+                var updateStatus = function() {
+                    var status = '';
+
+                    var moveColor = 'White';
+                    if (game.turn() === 'b') {
+                        moveColor = 'Black';
+                    }
+
+                    // checkmate?
+                    if (game.in_checkmate() === true) {
+                        status = 'Game over, ' + moveColor + ' is in checkmate.';
+                    }
+
+                    // draw?
+                    else if (game.in_draw() === true) {
+                        status = 'Game over, drawn position';
+                    }
+
+                    // game still on
+                    else {
+                        status = moveColor + ' to move';
+
+                        // check?
+                        if (game.in_check() === true) {
+                            status += ', ' + moveColor + ' is in check';
+                        }
+                    }
+                    statusEl.html(status);
+                    var htmlStr = "";
+                    var pgn = game.pgn();
+                    console.log(pgn);
+                    for (var i = 1;; i += 1) {
+                        pos = pgn.indexOf(i + ".");
+                        next = pgn.indexOf((i + 1) + ".");
+
+                        if (next == -1) {
+                            htmlStr += pgn.substring(pos, pgn.length) + " <br />";
+                            break;
+                        } else {
+                            htmlStr += pgn.substring(pos, next) + " <br />";
+                        }
+                    }
+
+                    historyEl.html(htmlStr);
+                };
+
+                var cfg = {
+                    draggable: true,
+                    position: 'start',
+                    onDragStart: onDragStart,
+                    onDrop: onDrop,
+                    onSnapEnd: onSnapEnd
+                };
+
+                board = ChessBoard('board', cfg);
+
+                updateStatus();
+
+                $('#startPositionBtn').on('click', function() {
+                    game = new Chess();
+                    history = "";
+                    board.start();
+                    updateStatus();
+                });
+                $('#flipBtn').on('click', board.flip);
+                $('#move1Btn').on('click', function() {
+                    if (enabled) {
+                        $('#move1Btn').attr("value", "Leela: Disabled");
+                    } else {
+                        $('#move1Btn').attr("value", "Leela: Enabled");
+
+                    }
+                    enabled = !enabled;
+                });
+
+                $('#slowBtn').on('click', function() {
+                    if (!useSlow) {
+                        $('#slowBtn').attr("value", "Disable Slow Mode");
+                    } else {
+                        $('#slowBtn').attr("value", "Enable Slow Mode");
+
+                    }
+                    useSlow = !useSlow;
+                });
+
+                $('#promoteBtn').on('click', function() {
+                    var newName;
+                    if (promotePiece == "q") {
+                        newName = "Rook";
+                        promotePiece = "r";
+                    } else if (promotePiece == "r") {
+                        newName = "Bishop";
+                        promotePiece = "b";
+                    } else if (promotePiece == "b") {
+                        newName = "Knight";
+                        promotePiece = "n";
+                    } else if (promotePiece == "n") {
+                        newName = "Queen";
+                        promotePiece = "q";
+                    }
+
+
+                    $('#promoteBtn').attr("value", "Will promote to: " + newName);
+                });
+
+                $('#move2Btn').on('click', function() {
+                    if (canMove) {
+                        playComputer();
+                    }
+                });
+            };
+            $(document).ready(init);
+        </script>
+    </div>
 
 </body>
+
 </html>
