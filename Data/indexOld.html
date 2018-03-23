@@ -30,12 +30,8 @@
 	<input type="button" id="startPositionBtn" value="Restart Game" />
 	<input type="button" id="move1Btn" value="Leela: Enabled" />
 	<input type="button" id="move2Btn" value="Force Leela Move" />
-	<input type="button" id="slowBtn" value="Enable Slow Mode" />
-	
 	<p style="color: white"><b> If you want to help making Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b></p>
 	<p style="color: white">Status: <span id="status" ></span></p>
-	<p style="color: white">Time left before playing: <span id="timeLeft" ></span></p>
-	
 	<div style="width: 400px; margin-left: auto; margin-right: auto;">
 		<p style="color: white; text-align: left">History: <br /><span id="history" ></span></p>
 	</div>
@@ -51,8 +47,6 @@
 			  historyEl = $('#history'),
 			  history = "";
 			var enabled = true;
-			var useSlow = false;
-			var canMove = true;
 
 			// do not pick up pieces if the game is over
 			// only pick up pieces for the side to move
@@ -65,9 +59,6 @@
 			};
 
 			var onDrop = function(source, target) {
-			  if(!canMove) {
-				return;
-			  }
 			  // see if the move is legal
 			  var move = game.move({
 				from: source,
@@ -87,7 +78,7 @@
 			// for castling, en passant, pawn promotion
 			var onSnapEnd = function() {
 			  board.position(game.fen());
-			  if(enabled && canMove) {
+			  if(enabled) {
 				playComputer();
 			  }
 			};
@@ -104,15 +95,6 @@
 				
 				onDrop(from_sq, to_sq);
 				board.position(game.fen());
-				canMove = false;
-				for(var i = 1; i <= 20 ; i++) {
-					setTimeout(function() {
-						$("timeLeft").html((20-i)+"s")
-					}, i*1000);
-				}
-				setTimeout(function() {
-					canMove = true;
-				}, 20000);
 			};
 
 			var updateStatus = function() {
@@ -193,9 +175,7 @@
 			});
 			
 			$('#move2Btn').on('click', function() {
-				if(canMove) {
-					playComputer();
-				}
+				playComputer();
 			});
 		};
 		$(document).ready(init);
