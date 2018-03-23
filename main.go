@@ -1,21 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"io"
-	"log"
 	"strings"
-	"bufio"
 	"time"
 )
 
 var pathToDatas string
-var newWebsockets = make(chan chan string)
+
 var pgnWaitList = make(chan string)
 var pgnBestMoves = make(chan string)
+
+var pgnWaitListSlow = make(chan string)
+var pgnBestMovesSlow = make(chan string)
 
 type CmdWrapper struct {
 	Cmd      *exec.Cmd
@@ -33,8 +36,9 @@ func (c *CmdWrapper) openInput() {
 }
 
 var p CmdWrapper
+var pSlow CmdWrapper
 
-func (c *CmdWrapper) launch(networkPath string, args []string, input bool) {
+func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movetime string, pgnWaitListChan chan string, pgnBestMovesChan chan string) {
 	c.BestMove = make(chan string)
 	weights := fmt.Sprintf("--weights=%s", networkPath)
 	c.Cmd = exec.Command("lczero", weights, "-t1")
@@ -42,7 +46,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool) {
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
 	c.Cmd.Args = append(c.Cmd.Args, "--quiet")
 	c.Cmd.Args = append(c.Cmd.Args, "-n")
-	
+
 	log.Printf("Args: %v\n", c.Cmd.Args)
 
 	stdout, err := c.Cmd.StdoutPipe()
@@ -88,26 +92,26 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	io.WriteString(c.Input, "uci\n")
 	go func() {
-		for pgn := range pgnWaitList {
+		for pgn := range pgnWaitListChan {
 			if len(pgn) > 1 {
-				log.Println("position startpos moves "+pgn+" \n")
+				log.Println("position startpos moves " + pgn + " \n")
 				io.WriteString(p.Input, "position startpos moves "+pgn+" \n")
 			} else {
 				log.Println("position startpos")
 				io.WriteString(p.Input, "position startpos \n")
 			}
-			
-			log.Println("go movetime 200")
-			io.WriteString(p.Input, "go movetime 200\n")
+
+			log.Println("go movetime " + movetime)
+			io.WriteString(p.Input, "go movetime"+movetime+"\n")
 
 			select {
 			case best_move := <-p.BestMove:
-				pgnBestMoves <- best_move
+				pgnBestMovesChan <- best_move
 			case <-time.After(10 * time.Second):
-				pgnBestMoves <- "timeout"
+				pgnBestMovesChan <- "timeout"
 			}
 		}
 	}()
@@ -143,6 +147,19 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		log.Println("GET", r.URL.Query())
+		if r.URL.Query().Get("pgn") != "" {
+			pgn := r.URL.Query().Get("pgn")
+			pgnWaitListSlow <- pgn
+			fmt.Fprintf(w, <-pgnBestMovesSlow)
+		} else {
+			fmt.Fprintf(w, "please provide pgn as uci moves")
+		}
+	}
+}
+
 func main() {
 	if len(os.Args) >= 2 {
 		pathToDatas = os.Args[1]
@@ -154,9 +171,13 @@ func main() {
 	defaultMux := http.NewServeMux()
 	defaultMux.HandleFunc("/", defaultHandler)
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
+	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	p = CmdWrapper{}
-	p.launch("networks/3857", nil, true)
+	p.launch("networks/3857", nil, true, "200", pgnWaitList, pgnBestMoves)
+	pSlow = CmdWrapper{}
+	pSlow.launch("networks/3857", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
 	defer p.Input.Close()
+	defer pSlow.Input.Close()
 
 	http.ListenAndServe(":80", defaultMux)
 
