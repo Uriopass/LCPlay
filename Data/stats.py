@@ -5,6 +5,7 @@ import matplotlib.dates as mdates
 import time
 
 def main():
+	plt.clf()
 	plt.style.use('dark_background')
 	count = 0
 	firstLine = True

@@ -98,17 +98,17 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movet
 		for pgn := range pgnWaitListChan {
 			if len(pgn) > 1 {
 				log.Println("position startpos moves " + pgn)
-				io.WriteString(p.Input, "position startpos moves "+pgn+" \n")
+				io.WriteString(c.Input, "position startpos moves "+pgn+" \n")
 			} else {
 				log.Println("position startpos")
-				io.WriteString(p.Input, "position startpos \n")
+				io.WriteString(c.Input, "position startpos \n")
 			}
 
 			log.Println("go movetime " + movetime)
-			io.WriteString(p.Input, "go movetime "+movetime+"\n")
+			io.WriteString(c.Input, "go movetime "+movetime+"\n")
 
 			select {
-				case best_move := <-p.BestMove:
+				case best_move := <-c.BestMove:
 					pgnBestMovesChan <- best_move
 				case <-time.After(10 * time.Second):
 					pgnBestMovesChan <- "timeout"
@@ -121,6 +121,7 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	if path == "" {
 		path = "index.html"
+		log.Println("For IP ", r.RemoteAddr, "with referer", r.Referer(), "asked index.html!")
 	}
 	page, err := LoadPage(path)
 
@@ -136,7 +137,7 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 
 func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET /getMove from", r.RemoteAddr, ": ", r.URL.Query())
+		log.Println("GET /getMove from", r.RemoteAddr, ":", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitList <- pgn
