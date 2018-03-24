@@ -136,7 +136,7 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 
 func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET", r.URL.Query())
+		log.Println("GET /getMove from", r.RemoteAddr, ": ", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitList <- pgn
@@ -149,7 +149,7 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 
 func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET From ", r.RemoteAddr, ": ", r.URL.Query())
+		log.Println("GET /getMoveSlow from ", r.RemoteAddr, ": ", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitListSlow <- pgn
@@ -163,7 +163,7 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	pathToDatas = "./Data/"
 	if len(os.Args) >= 2 {
-		logFilePath = os.Args[1]
+		logFilePath := os.Args[1]
 		f, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 		if err == nil {
 			log.SetOutput(f)
