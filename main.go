@@ -149,7 +149,7 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 
 func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET /getMoveSlow from ", r.RemoteAddr, ": ", r.URL.Query())
+		log.Println("GET /getMoveSlow from", r.RemoteAddr, ": ", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitListSlow <- pgn

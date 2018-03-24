@@ -27,7 +27,6 @@
     </script>
     <h1 style="text-align:center; color: white"> Play against LCZero ID 27 </h1>
     <div style="text-align: center;width=400px">
-			<i style="color: white"> Attention: There was a bug making slow mode and fast mode equivalent, should be fixed now. Fast mode may be weaker than it was before. </i>
     <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
 
@@ -55,7 +54,11 @@
             <p style="color: white; text-align: left">
                 <b>History: </b><br /><span id="history"></span>
             </p>
+			<br />
+			<br />
+			<br />
         </div>
+		<img src="stats.png" />
 
 
         <script src="js/json3.min.js"></script>
@@ -128,6 +131,12 @@
 								$("#move2Btn").attr("disabled", false);
 							}, 10000);
 						}
+					} else {
+						$("#status").html("There was an error asking Leela's move.. This page will retry in 5 seconds");
+						console.log("Weird..");
+						setTimeout(function() {
+								askMove();
+						}, 5000);
 					}
 				}
 			};
