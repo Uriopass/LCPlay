@@ -23,7 +23,7 @@ def main():
 		return datetime.datetime.now() - t
 		
 	init_time = -1
-	bin_size = 120
+	bin_size = 3*60
 	with FileReadBackwards("G:\log.txt") as frb:
 		for l in frb:
 			splitted = [x for x in l.split(" ") if x != ""]
@@ -53,8 +53,8 @@ def main():
 	fast = []
 	ips_c = []
 	for minute in minuteSorted:
-		slow.append(minutes[minute]["count_moves"]["/getMoveSlow"])
-		fast.append(minutes[minute]["count_moves"]["/getMove"])
+		slow.append(minutes[minute]["count_moves"]["/getMoveSlow"] * (60 / bin_size))
+		fast.append(minutes[minute]["count_moves"]["/getMove"] * (60 / bin_size))
 		ips_c.append(len(minutes[minute]["ips"]))
 
 	plt.rcParams['axes.facecolor']='#323232'
@@ -65,6 +65,7 @@ def main():
 	plt.title("LCPlay stats, UTC+1")
 	plt.plot(x_axis, slow, label="Slow reqs count")
 	plt.plot(x_axis, fast, label="Fast reqs count")
+	plt.ylabel("reqs/m")
 	plt.legend()
 	ax = plt.subplot(212)
 	plt.plot(x_axis, ips_c, label="Unique IPs")
