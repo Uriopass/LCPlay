@@ -41,7 +41,7 @@ var pSlow CmdWrapper
 func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movetime string, pgnWaitListChan chan string, pgnBestMovesChan chan string) {
 	c.BestMove = make(chan string)
 	weights := fmt.Sprintf("--weights=%s", networkPath)
-	c.Cmd = exec.Command("lczero", weights, "-t1")
+	c.Cmd = exec.Command("lczero", weights, "-t2")
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
 	c.Cmd.Args = append(c.Cmd.Args, "--quiet")
@@ -105,7 +105,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movet
 			}
 
 			log.Println("go movetime " + movetime)
-			io.WriteString(p.Input, "go movetime"+movetime+"\n")
+			io.WriteString(p.Input, "go movetime "+movetime+"\n")
 
 			select {
 				case best_move := <-p.BestMove:
@@ -125,11 +125,11 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	page, err := LoadPage(path)
 
 	if err != nil {
-		log.Println("Error loading page : ", err)
+		log.Println("For IP ", r.RemoteAddr, " Error 404: ", err)
 		w.WriteHeader(404)
 		fmt.Fprintf(w, "404 - Page not found !")
 	} else {
-		log.Println("Page requested and sent : ", page.Title)
+		log.Println("For IP ", r.RemoteAddr, ": ", page.Title)
 		w.Write(page.Body)
 	}
 }
@@ -174,9 +174,9 @@ func main() {
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	p = CmdWrapper{}
-	p.launch("networks/3857", nil, true, "200", pgnWaitList, pgnBestMoves)
+	p.launch("networks/7428", nil, true, "200", pgnWaitList, pgnBestMoves)
 	pSlow = CmdWrapper{}
-	pSlow.launch("networks/3857", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+	pSlow.launch("networks/7428", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
 	defer p.Input.Close()
 	defer pSlow.Input.Close()
 

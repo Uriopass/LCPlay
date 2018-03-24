@@ -25,9 +25,10 @@
     </style>
     <script type="text/javascript">
     </script>
-    <h1 style="text-align:center; color: white"> Currently playing Leela Chess Zero using network id 23 </h1>
-    <hr/>
+    <h1 style="text-align:center; color: white"> Play against LCZero ID 27 </h1>
     <div style="text-align: center;width=400px">
+			<i style="color: white"> Attention: There was a bug making slow mode and fast mode equivalent, should be fixed now. Fast mode may be weaker than it was before. </i>
+    <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
 
         <div id="board" style="margin-left: auto; margin-right: auto; width: 400px"></div>
@@ -41,6 +42,7 @@
 
         <p style="color: white">
             <b> If you want to help making Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b>
+			<br />
         </p>
         <p style="color: white">
             <b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (about 2 seconds instead of 200ms). In exchange you have to wait 10 seconds to play not to overload the server.
@@ -156,6 +158,10 @@
                     }
                     mv_history += source + target + " ";
                     updateStatus();
+					
+                    promotePiece = "q";
+
+                    $('#promoteBtn').attr("value", "Will promote to: Queen");
                 };
 
                 // update the board position after the piece snap 
@@ -168,7 +174,7 @@
                 };
 
                 var playComputer = function() {
-                    if (!canMove)
+                    if (!canMove || game.game_over() === true)
                         return;
                     askMove();
                 };
@@ -261,19 +267,18 @@
                 $('#promoteBtn').on('click', function() {
                     var newName;
                     if (promotePiece == "q") {
-                        newName = "Rook";
-                        promotePiece = "r";
-                    } else if (promotePiece == "r") {
-                        newName = "Bishop";
-                        promotePiece = "b";
-                    } else if (promotePiece == "b") {
                         newName = "Knight";
                         promotePiece = "n";
                     } else if (promotePiece == "n") {
+                        newName = "Bishop";
+                        promotePiece = "b";
+                    } else if (promotePiece == "b") {
+                        newName = "Rook";
+                        promotePiece = "r";
+                    } else if (promotePiece == "r") {
                         newName = "Queen";
                         promotePiece = "q";
                     }
-
 
                     $('#promoteBtn').attr("value", "Will promote to: " + newName);
                 });
