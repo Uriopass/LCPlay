@@ -27,7 +27,6 @@
     </script>
     <h1 style="text-align:center; color: white"> Play against LCZero ID 27 </h1>
     <div style="text-align: center;width=400px">
-	<i> You can now pre-move in slow mode, Leela will play when counter is at 0 </i>
     <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
 
@@ -77,8 +76,6 @@
 			var canMove = true;
 			var promotePiece = "q";
 			var reqMoveXhr = new XMLHttpRequest();
-			var preMove = "";
-			var thinking = false;
 			
 			function askMove() {
 				var askUrl = "getMove";
@@ -94,13 +91,11 @@
 				console.log(toSend);
 				var move = reqMoveXhr.open("GET", toSend, true);
 				reqMoveXhr.send(null);
-				board.draggable = false;
 			}
 			
 			reqMoveXhr.onload = function (e) {
 				if (reqMoveXhr.readyState === 4) {
 					if (reqMoveXhr.status === 200) {
-						board.draggable = false;
 						console.log("Received move from computa: " + reqMoveXhr.responseText);
 						var move = reqMoveXhr.responseText;
 						from_sq = move[0] + move[1];
@@ -120,6 +115,7 @@
 
 						if (useSlow) {
 							canMove = false;
+							$("#move2Btn").attr("disabled", true);
 							var counter = 10;
 							for (var i = 0; i <= 10; i++) {
 								setTimeout(function() {
@@ -132,9 +128,7 @@
 							}
 							setTimeout(function() {
 								canMove = true;
-								if(preMove) {
-									playComputer();
-								}
+								$("#move2Btn").attr("disabled", false);
 							}, 10000);
 						}
 					} else {
@@ -157,6 +151,9 @@
                 };
 
                 var onDrop = function(source, target) {
+                    if (!canMove) {
+                        return;
+                    }
                     // see if the move is legal
                     var move = game.move({
                         from: source,
@@ -174,20 +171,14 @@
                     promotePiece = "q";
 
                     $('#promoteBtn').attr("value", "Will promote to: Queen");
-					preMove = false;
                 };
 
                 // update the board position after the piece snap 
                 // for castling, en passant, pawn promotion
                 var onSnapEnd = function() {
                     board.position(game.fen());
-                    if (enabled && !game.game_over()) {
-						if(canMove) {
-							playComputer();
-						} else {
-							$("#status").html("Pre move registered. Leela will play when time is over")
-							preMove = true;
-						}
+                    if (enabled && canMove) {
+                        playComputer();
                     }
                 };
 
@@ -304,12 +295,7 @@
                 $('#move2Btn').on('click', function() {
                     if (canMove) {
                         playComputer();
-                    } else {
-						else {
-							$("#status").html("Force Leela pre move registered. Leela will play when time is over")
-							preMove = true;
-						}
-					}
+                    }
                 });
         </script>
     </div>
