@@ -76,6 +76,7 @@ def main():
 	plt.gcf().autofmt_xdate()
 	plt.legend()
 	plt.savefig("stats.png")
+	print("Done")
 
 while True:
 	main()

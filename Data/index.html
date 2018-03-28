@@ -25,11 +25,12 @@
     </style>
     <script type="text/javascript">
     </script>
-    <h1 style="text-align:center; color: white"> Play against LCZero ID 27 </h1>
+    <h1 style="text-align:center; color: white"> Play against LCZero ID 45 </h1>
     <div style="text-align: center;width=400px">
-	<i style="color: white"> You can now move while waiting in slow mode, Leela will play when the counter is at 0. </i>
+	<i style="color: white"> 27th March 5 PM UTC: Update to ID 45, expected 80 ELO increase. <br /></i>
     <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
+        <p style="color: white"><b><span id="winrate" ><br /></span></b></p>
 
         <div id="board" style="margin-left: auto; margin-right: auto; width: 400px"></div>
 
@@ -41,11 +42,11 @@
         <input type="button" id="promoteBtn" value="Will promote to: Queen" />
 
         <p style="color: white">
-            <b> If you want to help making Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b>
+            <b> If you want to help make Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/">http://lczero.org/</a> !</b>
 			<br />
         </p>
         <p style="color: white">
-            <b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (about 2 seconds instead of 200ms). In exchange you have to wait 10 seconds to play not to overload the server.
+            <b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (2000 playouts). In exchange you have to wait 10 seconds to play not to overload the server.
         </p>
 
         <div style="width: 400px; margin-left: auto; margin-right: auto;">
@@ -59,7 +60,6 @@
 			<br />
 			<br />
         </div>
-		<img src="stats.png" />
 
 
         <script src="js/json3.min.js"></script>
@@ -93,6 +93,7 @@
 				var toSend = askUrl + "?pgn=" + historyStr;
 				console.log(toSend);
 				var move = reqMoveXhr.open("GET", toSend, true);
+				reqMoveXhr.timeout = 10000;
 				reqMoveXhr.send(null);
 				board.draggable = false;
 			}
@@ -102,16 +103,21 @@
 					if (reqMoveXhr.status === 200) {
 						board.draggable = false;
 						console.log("Received move from computa: " + reqMoveXhr.responseText);
-						var move = reqMoveXhr.responseText;
+						var move = reqMoveXhr.responseText.split(";")[0];
+						var wr = "";
+						if(move.length > 1) {
+							wr = reqMoveXhr.responseText.split(";")[1].split("!")[0];
+							$("#winrate").html("Leela thinks she has a probability of "+wr+" to win.");
+						}
 						from_sq = move[0] + move[1];
 						to_sq = move[2] + move[3];
 						
 						var oldPromote = promotePiece;
 						if (move.length > 4) {
-							if (move[5] == "=")
-								promotePiece = move[6];
-							else
+							if (move[4] == "=")
 								promotePiece = move[5];
+							else
+								promotePiece = move[4];
 						}
 
 						onDrop(from_sq, to_sq);
@@ -185,7 +191,7 @@
 						if(canMove) {
 							playComputer();
 						} else {
-							$("#status").html("Pre move registered. Leela will play when time is over")
+							$("#status").html("Move registered. Leela will play when time is over")
 							preMove = true;
 						}
                     }
@@ -305,11 +311,12 @@
                     if (canMove) {
                         playComputer();
                     } else {
-							$("#status").html("Force Leela pre move registered. Leela will play when time is over")
+							$("#status").html("Force Leela move registered. Leela will play when time is over")
 							preMove = true;
 					}
                 });
         </script>
+		<img src="stats.png" />
     </div>
 
 </body>

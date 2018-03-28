@@ -25,6 +25,7 @@ type CmdWrapper struct {
 	Pgn      string
 	Input    io.WriteCloser
 	BestMove chan string
+	Winrate chan string
 }
 
 func (c *CmdWrapper) openInput() {
@@ -38,14 +39,17 @@ func (c *CmdWrapper) openInput() {
 var p CmdWrapper
 var pSlow CmdWrapper
 
-func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movetime string, pgnWaitListChan chan string, pgnBestMovesChan chan string) {
+func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playouts string, pgnWaitListChan chan string, pgnBestMovesChan chan string) {
 	c.BestMove = make(chan string)
+	c.Winrate = make(chan string)
 	weights := fmt.Sprintf("--weights=%s", networkPath)
 	c.Cmd = exec.Command("lczero", weights, "-t2")
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
 	c.Cmd.Args = append(c.Cmd.Args, "--quiet")
 	c.Cmd.Args = append(c.Cmd.Args, "-n")
+	c.Cmd.Args = append(c.Cmd.Args, "--noponder")
+	c.Cmd.Args = append(c.Cmd.Args, "-p"+playouts)
 
 	log.Printf("Args: %v\n", c.Cmd.Args)
 
@@ -73,6 +77,9 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movet
 				c.Pgn += line + "\n"
 			} else if strings.HasPrefix(line, "bestmove ") {
 				c.BestMove <- strings.Split(line, " ")[1]
+			} else if strings.HasPrefix(line, "info") {
+				a := strings.Split(strings.Split(line, "winrate ")[1], " time")[0]
+				c.Winrate <- a
 			}
 		}
 	}()
@@ -104,12 +111,17 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, movet
 				io.WriteString(c.Input, "position startpos \n")
 			}
 
-			log.Println("go movetime " + movetime)
-			io.WriteString(c.Input, "go movetime "+movetime+"\n")
+			log.Println("go playouts " + playouts)
+			io.WriteString(c.Input, "go \n")
 
 			select {
-				case best_move := <-c.BestMove:
-					pgnBestMovesChan <- best_move
+				case winr := <-c.Winrate:
+					select {
+						case best_move := <-c.BestMove:
+							pgnBestMovesChan <- best_move+";"+winr
+						case <-time.After(10 * time.Second):
+							pgnBestMovesChan <- "timeout"
+					}
 				case <-time.After(10 * time.Second):
 					pgnBestMovesChan <- "timeout"
 			}
@@ -175,9 +187,9 @@ func main() {
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	p = CmdWrapper{}
-	p.launch("networks/7428", nil, true, "200", pgnWaitList, pgnBestMoves)
+	p.launch("networks/9e5", nil, true, "200", pgnWaitList, pgnBestMoves)
 	pSlow = CmdWrapper{}
-	pSlow.launch("networks/7428", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+	pSlow.launch("networks/9e5", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
 	defer p.Input.Close()
 	defer pSlow.Input.Close()
 
