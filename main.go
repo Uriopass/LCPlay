@@ -80,6 +80,8 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 			} else if strings.HasPrefix(line, "info") {
 				a := strings.Split(strings.Split(line, "winrate ")[1], " time")[0]
 				c.Winrate <- a
+			} else {
+				log.Println("Weird line from lczero.exe "+line)
 			}
 		}
 	}()
@@ -151,9 +153,13 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		log.Println("GET /getMove from", r.RemoteAddr, ":", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
+			start := time.Now()
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitList <- pgn
-			fmt.Fprintf(w, <-pgnBestMoves)
+			bestMove := <-pgnBestMoves
+			fmt.Fprintf(w, bestMove)
+			elapsed := time.Since(start)
+			log.Println("It took "+fmt.Sprintf("%s", elapsed)+" and answer is "+bestMove)
 		} else {
 			fmt.Fprintf(w, "please provide pgn as uci moves")
 		}
@@ -164,9 +170,13 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		log.Println("GET /getMoveSlow from", r.RemoteAddr, ": ", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
+			start := time.Now()
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitListSlow <- pgn
-			fmt.Fprintf(w, <-pgnBestMovesSlow)
+			bestMove := <-pgnBestMovesSlow
+			fmt.Fprintf(w, bestMove)
+			elapsed := time.Since(start)
+			log.Println("It took "+fmt.Sprintf("%s", elapsed)+" and answer is "+bestMove)
 		} else {
 			fmt.Fprintf(w, "please provide pgn as uci moves")
 		}
@@ -187,9 +197,9 @@ func main() {
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	p = CmdWrapper{}
-	p.launch("networks/9e5", nil, true, "200", pgnWaitList, pgnBestMoves)
+	p.launch("networks/0c0a", nil, true, "200", pgnWaitList, pgnBestMoves)
 	pSlow = CmdWrapper{}
-	pSlow.launch("networks/9e5", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+	pSlow.launch("networks/0c0a", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
 	defer p.Input.Close()
 	defer pSlow.Input.Close()
 
