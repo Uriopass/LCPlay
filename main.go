@@ -20,6 +20,9 @@ var pgnBestMoves = make(chan string)
 var pgnWaitListSlow = make(chan string)
 var pgnBestMovesSlow = make(chan string)
 
+var pgnWaitListUltra = make(chan string)
+var pgnBestMovesUltra = make(chan string)
+
 type CmdWrapper struct {
 	Cmd      *exec.Cmd
 	Pgn      string
@@ -38,15 +41,16 @@ func (c *CmdWrapper) openInput() {
 
 var p CmdWrapper
 var pSlow CmdWrapper
+var pUltra CmdWrapper
 
 func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playouts string, pgnWaitListChan chan string, pgnBestMovesChan chan string) {
 	c.BestMove = make(chan string)
 	c.Winrate = make(chan string)
 	weights := fmt.Sprintf("--weights=%s", networkPath)
-	c.Cmd = exec.Command("lczero", weights, "-t2")
+	c.Cmd = exec.Command("lczero", weights, "-t1")
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
-	c.Cmd.Args = append(c.Cmd.Args, "--quiet")
+	//c.Cmd.Args = append(c.Cmd.Args, "--quiet")
 	c.Cmd.Args = append(c.Cmd.Args, "-n")
 	c.Cmd.Args = append(c.Cmd.Args, "--noponder")
 	c.Cmd.Args = append(c.Cmd.Args, "-p"+playouts)
@@ -66,9 +70,10 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	go func() {
 		stdoutScanner := bufio.NewScanner(stdout)
 		reading_pgn := false
+		last := ""
 		for stdoutScanner.Scan() {
 			line := stdoutScanner.Text()
-			//log.Printf("%s\n", line)
+			//log.Printf("Playouts: %v said %s\n", playouts, line)
 			if line == "PGN" {
 				reading_pgn = true
 			} else if line == "END" {
@@ -76,10 +81,10 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 			} else if reading_pgn {
 				c.Pgn += line + "\n"
 			} else if strings.HasPrefix(line, "bestmove ") {
+				c.Winrate <- last
 				c.BestMove <- strings.Split(line, " ")[1]
 			} else if strings.HasPrefix(line, "info") {
-				a := strings.Split(strings.Split(line, "winrate ")[1], " time")[0]
-				c.Winrate <- a
+				last = strings.Split(strings.Split(line, "winrate ")[1], " time")[0]
 			} else {
 				log.Println("Weird line from lczero.exe "+line)
 			}
@@ -89,7 +94,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	go func() {
 		stderrScanner := bufio.NewScanner(stderr)
 		for stderrScanner.Scan() {
-			log.Printf("%s\n", stderrScanner.Text())
+			//log.Printf("%s\n", stderrScanner.Text())
 		}
 	}()
 
@@ -121,11 +126,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 					select {
 						case best_move := <-c.BestMove:
 							pgnBestMovesChan <- best_move+";"+winr
-						case <-time.After(10 * time.Second):
-							pgnBestMovesChan <- "timeout"
 					}
-				case <-time.After(10 * time.Second):
-					pgnBestMovesChan <- "timeout"
 			}
 		}
 	}()
@@ -166,6 +167,23 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getMoveUltraHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		log.Println("GET /getMoveUltra from", r.RemoteAddr, ": ", r.URL.Query())
+		if r.URL.Query().Get("pgn") != "" {
+			start := time.Now()
+			pgn := r.URL.Query().Get("pgn")
+			pgnWaitListUltra <- pgn
+			bestMove := <-pgnBestMovesUltra
+			fmt.Fprintf(w, bestMove)
+			elapsed := time.Since(start)
+			log.Println("It took "+fmt.Sprintf("%s", elapsed)+" and answer is "+bestMove)
+		} else {
+			fmt.Fprintf(w, "please provide pgn as uci moves")
+		}
+	}
+}
+
 func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		log.Println("GET /getMoveSlow from", r.RemoteAddr, ": ", r.URL.Query())
@@ -191,17 +209,23 @@ func main() {
 		if err == nil {
 			log.SetOutput(f)
 		}
+		defer f.Close()
 	}
+	net_name := "a8bd"
 	defaultMux := http.NewServeMux()
 	defaultMux.HandleFunc("/", defaultHandler)
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
+	defaultMux.HandleFunc("/getMoveUltra", getMoveUltraHandler)
 	p = CmdWrapper{}
-	p.launch("networks/0c0a", nil, true, "200", pgnWaitList, pgnBestMoves)
+	p.launch("networks/"+net_name, nil, true, "200", pgnWaitList, pgnBestMoves)
 	pSlow = CmdWrapper{}
-	pSlow.launch("networks/0c0a", nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+	pSlow.launch("networks/"+net_name, nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+	pUltra = CmdWrapper{}
+	pUltra.launch("networks/"+net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
 	defer p.Input.Close()
 	defer pSlow.Input.Close()
+	defer pUltra.Input.Close()
 
 	http.ListenAndServe(":80", defaultMux)
 

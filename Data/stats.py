@@ -17,7 +17,7 @@ def main():
 		
 	minutes = {}
 	def initMinute(m):
-		minutes[m] = {"ips": {}, "count_moves": {"/getMove": 0, "/getMoveSlow": 0}}
+		minutes[m] = {"ips": {}, "count_moves": {"/getMove": 0, "/getMoveSlow": 0, "/getMoveUltra": 0}}
 
 	def delta_t(t):
 		return datetime.datetime.now() - t
@@ -51,10 +51,12 @@ def main():
 	minuteSorted = sorted(minutes.keys())
 	slow = []
 	fast = []
+	ultra = []
 	ips_c = []
 	for minute in minuteSorted:
 		slow.append(minutes[minute]["count_moves"]["/getMoveSlow"] * (60 / bin_size))
 		fast.append(minutes[minute]["count_moves"]["/getMove"] * (60 / bin_size))
+		ultra.append(minutes[minute]["count_moves"]["/getMoveUltra"] * (60 / bin_size))
 		ips_c.append(len(minutes[minute]["ips"]))
 
 	plt.rcParams['axes.facecolor']='#323232'
@@ -65,6 +67,7 @@ def main():
 	plt.title("LCPlay stats, UTC+1")
 	plt.plot(x_axis, slow, label="Slow reqs count")
 	plt.plot(x_axis, fast, label="Fast reqs count")
+	plt.plot(x_axis, ultra, label="Ultra reqs count")
 	plt.ylabel("reqs/m")
 	plt.legend()
 	ax = plt.subplot(212)

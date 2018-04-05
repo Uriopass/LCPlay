@@ -13,36 +13,6 @@
 
 	  gtag('config', 'UA-116299647-1');
 	</script>
-	<style>
-		.minimal {
-			background: white;
-			border: 1px solid #bbb;
-			border-radius: 3px;
-			-webkit-box-shadow: inset 0 0 1px 1px #f6f6f6;
-			box-shadow: inset 0 0 1px 1px #f6f6f6;
-			color: #333;
-			font: bold 12px/1 "helvetica neue", helvetica, arial, sans-serif;
-			padding: 8px 0 9px;
-			text-align: center;
-			text-shadow: 0 1px 0 #fff;
-			width: 150px; 
-			position: relative;
-			margin: 2px;
-		}
-		.minimal:hover {
-			background: #e9e9e9;
-			-webkit-box-shadow: inset 0 0 1px 1px #eaeaea;
-			box-shadow: inset 0 0 1px 1px #eaeaea;
-			color: #222;
-			cursor: pointer; 
-		}
-		.minimal:active {
-			background: #d0d0d0;
-			-webkit-box-shadow: inset 0 0 1px 1px #e3e3e3;
-			box-shadow: inset 0 0 1px 1px #e3e3e3;
-			color: #000; 
-		}
-	</style>
 
 </head>
 
@@ -56,43 +26,33 @@
     <script type="text/javascript">
     </script>
     <h1 style="text-align:center; color: white"> Play against LCZero ID 82 </h1>
-    <div style="text-align: center;">
-	<i style="color: white"> 5th April 1 PM UTC : New UI out !<br /></i>
+    <div style="text-align: center;width=400px">
+	<i style="color: white"> 4th April 9 AM : My lczero.exe crashed due to overload, fixed by deleting timeout check. Shouldn't crash anymore.<br /></i>
     <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
         <p style="color: white"><b><span id="winrate" ><br /></span></b></p>
-		<div id="lol" style="margin-left: auto; margin-right: auto; width: 800px; height: 400px; color:white;">
-			<div id="board" style="float: left; margin-left: 200px;width: 400px"></div>
-			<div id = "controls" style="display: block; width: 200px;float: right;">
-				<input type="button" id="startPositionBtn" class="minimal" value="Restart Game" /> 
-				<input type="button" id="flipBtn" class="minimal" value="Flip the board ↺" /><br />
-				<input type="button" id="promoteBtn" class="minimal" value="Will promote to: Queen" />
-				<input type="button" id="move1Btn" class="minimal" value="Leela: Enabled" /><br />
-				<input type="button" id="move2Btn" class="minimal" value="Force Leela Move" /><br />
-				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Choose a mode:</b></p>
-				<input type="button" id="ultrafastBtn" class="minimal" value="Ultra Fast Mode" /><br />
-				<input type="button" id="fastBtn" class="minimal" value="Fast Mode" /><br />
-				<input type="button" id="slowBtn" class="minimal" value="Slow Mode" /><br />
-				<span style="text-align: left;position: relative; left:25px;">
-				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Current: <span id="curMode" style="color: white">Fast</span></b></p>
-				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Playouts: <span id="playouts" style="color: white">200</span></b></p>
-				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Wait time: <span id="timeLeft" style="color: white">0s</span></b></p>
-				</span>
-			</div>
-		</div>
-		<div>
+
+        <div id="board" style="margin-left: auto; margin-right: auto; width: 400px"></div>
+
+        <input type="button" id="startPositionBtn" value="Restart Game" />
+        <input type="button" id="move1Btn" value="Leela: Enabled" />
+        <input type="button" id="move2Btn" value="Force Leela Move" />
+        <input type="button" id="slowBtn" value="Enable Slow Mode" />
+        <input type="button" id="flipBtn" value="Flip the board" />
+        <input type="button" id="promoteBtn" value="Will promote to: Queen" />
+
         <p style="color: white">
             <b> If you want to help make Leela Chess Zero stronger, please think about contributing your GPU at <a href="http://lczero.org/" style=":visited {color: #8b00d0;}">http://lczero.org/</a> !</b>
 			<br />
         </p>
         <p style="color: white">
-            <b> What are modes ? </b> Modes are leela playing at different playouts, which can be compared to nodes in traditional chess engines. <br />
-			In fast mode, Leela is playing very fast and can miss tactics and mates, but it is the simplest way to see how she behaves. <br />
-			In slow mode, Leela should play much better, but it takes more calculations so you will have to wait 5 seconds after she answers not to overload the server. <br />
-			In ultra fast mode, Leela is not doing any calculations and is playing purely by insight, just taking the board and evaluating what looks interesting. <br />
+            <b> What is slow mode ? </b> Slow mode means that Leela thinks 10x more ! (2000 playouts). In exchange you have to wait 5 seconds to play not to overload the server.
         </p>
-		</div>
+
         <div style="width: 400px; margin-left: auto; margin-right: auto;">
+            <p style="color: white; text-align: left">
+                Time left before playing: <span id="timeLeft">0s</span>
+            </p>
             <p style="color: white; text-align: left">
                 <b>History: </b><br /><span id="history"></span>
             </p>
@@ -113,7 +73,7 @@
 			var historyEl = $('#history');
 			var mv_history = "";
 			var enabled = true;
-			var playouts = 200;
+			var useSlow = false;
 			var canMove = true;
 			var promotePiece = "q";
 			var reqMoveXhr = new XMLHttpRequest();
@@ -122,11 +82,8 @@
 			
 			function askMove() {
 				var askUrl = "getMove";
-				if (playouts == 2000) {
+				if (useSlow) {
 					askUrl = "getMoveSlow";
-				}
-				if (playouts == 1) {
-					askUrl = "getMoveUltra";
 				}
 				var historyStr = mv_history;
 				if (mv_history == "") {
@@ -138,6 +95,7 @@
 				var move = reqMoveXhr.open("GET", toSend, true);
 				reqMoveXhr.timeout = 10000;
 				reqMoveXhr.send(null);
+				board.draggable = false;
 			}
 			
 			reqMoveXhr.onload = function (e) {
@@ -166,7 +124,7 @@
 						board.position(game.fen());
 						promotePiece = oldPromote;
 						var timeWait = 5;
-						if (playouts == 2000) {
+						if (useSlow) {
 							canMove = false;
 							var counter = timeWait;
 							for (var i = 0; i <= timeWait; i++) {
@@ -321,21 +279,13 @@
                 });
 
                 $('#slowBtn').on('click', function() {
-                    $('#curMode').html("Slow");
-                    playouts = 2000;
-					$('#playouts').html(playouts);
-                });
-				 
-				$('#fastBtn').on('click', function() {
-                    $('#curMode').html("Fast");
-                    playouts = 200;
-					$('#playouts').html(playouts);
-                });
-				
-				$('#ultrafastBtn').on('click', function() {
-                    $('#curMode').html("Ultra Fast");
-                    playouts = 1;
-					$('#playouts').html(playouts);
+                    if (!useSlow) {
+                        $('#slowBtn').attr("value", "Disable Slow Mode");
+                    } else {
+                        $('#slowBtn').attr("value", "Enable Slow Mode");
+
+                    }
+                    useSlow = !useSlow;
                 });
 
                 $('#promoteBtn').on('click', function() {
