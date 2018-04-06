@@ -29,7 +29,7 @@ def main():
 			splitted = [x for x in l.split(" ") if x != ""]
 			t = parseTime(splitted)
 			minute = delta_t(t).seconds//bin_size
-			if(minute > (8*60*60)//bin_size):
+			if(minute > (12*60*60)//bin_size):
 				break
 			if minute not in minutes:
 				initMinute(minute)
@@ -65,13 +65,14 @@ def main():
 	x_axis = [datetime.datetime.now() - datetime.timedelta(minutes=(i*bin_size)//60) for i in minuteSorted]
 	plt.subplot(211)
 	plt.title("LCPlay stats, UTC+1")
-	plt.plot(x_axis, slow, label="Slow reqs count")
-	plt.plot(x_axis, fast, label="Fast reqs count")
-	plt.plot(x_axis, ultra, label="Ultra reqs count")
+	plt.plot(x_axis, slow, label="Hard reqs count")
+	plt.plot(x_axis, fast, label="Normal reqs count")
+	plt.plot(x_axis, ultra, label="Easy reqs count")
 	plt.ylabel("reqs/m")
 	plt.legend()
 	ax = plt.subplot(212)
 	plt.plot(x_axis, ips_c, label="Unique IPs")
+	plt.ylim(ymin=0)
 	ax.xaxis_date()
 	ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 	ax.xaxis.set_minor_formatter(mdates.DateFormatter("%H:%M"))
