@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -23,12 +24,16 @@ var pgnBestMovesSlow = make(chan string)
 var pgnWaitListUltra = make(chan string)
 var pgnBestMovesUltra = make(chan string)
 
+var httpClient *http.Client
+var HOSTNAME = "http://162.217.248.187"
+
 type CmdWrapper struct {
 	Cmd      *exec.Cmd
 	Pgn      string
 	Input    io.WriteCloser
 	BestMove chan string
-	Winrate chan string
+	Winrate  chan string
+	Consumes bool
 }
 
 func (c *CmdWrapper) openInput() {
@@ -39,15 +44,15 @@ func (c *CmdWrapper) openInput() {
 	}
 }
 
-var p CmdWrapper
-var pSlow CmdWrapper
-var pUltra CmdWrapper
+var p *CmdWrapper
+var pSlow *CmdWrapper
+var pUltra *CmdWrapper
 
 func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playouts string, pgnWaitListChan chan string, pgnBestMovesChan chan string) {
 	c.BestMove = make(chan string)
 	c.Winrate = make(chan string)
 	weights := fmt.Sprintf("--weights=%s", networkPath)
-	c.Cmd = exec.Command("lczero", weights, "-t1")
+	c.Cmd = exec.Command("./lczero", weights, "-t1")
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
 	//c.Cmd.Args = append(c.Cmd.Args, "--quiet")
@@ -86,7 +91,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 			} else if strings.HasPrefix(line, "info") {
 				last = strings.Split(strings.Split(line, "winrate ")[1], " time")[0]
 			} else {
-				log.Println("Weird line from lczero.exe "+line)
+				log.Println("Weird line from lczero.exe " + line)
 			}
 		}
 	}()
@@ -122,37 +127,98 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 			io.WriteString(c.Input, "go \n")
 
 			select {
-				case winr := <-c.Winrate:
-					select {
-						case best_move := <-c.BestMove:
-							pgnBestMovesChan <- best_move+";"+winr
-					}
+			case winr := <-c.Winrate:
+				select {
+				case best_move := <-c.BestMove:
+					pgnBestMovesChan <- best_move + ";" + winr
+				}
+			}
+			if !c.Consumes {
+				break
 			}
 		}
+		c.Cmd.Process.Kill()
 	}()
+}
+
+func getExtraParams() map[string]string {
+	return map[string]string{
+		"user":     "iwontupload",
+		"password": "hunter2",
+		"version":  "4",
+	}
+}
+
+func getNetwork(sha string) (string, bool, error) {
+	// Sha already exists?
+	path := filepath.Join("networks", sha)
+	if stat, err := os.Stat(path); err == nil {
+		if stat.Size() != 0 {
+			return path, false, nil
+		}
+	}
+	os.MkdirAll("networks", os.ModePerm)
+
+	fmt.Printf("Downloading network...\n")
+	// Otherwise, let's download it
+	err := DownloadNetwork(httpClient, HOSTNAME, path, sha)
+	if err != nil {
+		return "", false, err
+	}
+	return path, true, nil
+}
+
+func updateNetwork() (bool, string) {
+	nextGame, err := NextGame(httpClient, HOSTNAME, getExtraParams())
+	if err != nil {
+		log.Println(err)
+		return false, ""
+	}
+	if nextGame.Type == "train" {
+		networkPath, newNet, err := getNetwork(nextGame.Sha)
+		if err != nil {
+			log.Println(err)
+			return false, ""
+		}
+		return newNet, networkPath
+	}
+	return false, ""
+}
+
+func getIP(r *http.Request) string {
+	fw := strings.Split(r.Header.Get("X-Forwarded-For"), ", ")[0]
+	if fw == "" {
+		fw = r.Header.Get("X-Real-IP")
+	}
+	if fw == "" {
+		fw = r.RemoteAddr
+	}
+	return fw
 }
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
+	ip := getIP(r)
 	if path == "" {
 		path = "index.html"
-		log.Println("For IP ", r.RemoteAddr, "with referer", r.Referer(), "asked index.html!")
+		log.Println("For IP ", ip, "with referer", r.Referer(), "asked index.html!")
 	}
 	page, err := LoadPage(path)
 
 	if err != nil {
-		log.Println("For IP ", r.RemoteAddr, " Error 404: ", err)
+		log.Println("For IP ", ip, " Error 404: ", err)
 		w.WriteHeader(404)
 		fmt.Fprintf(w, "404 - Page not found !")
 	} else {
-		log.Println("For IP ", r.RemoteAddr, ": ", page.Title)
+		log.Println("For IP ", ip, ": ", page.Title)
 		w.Write(page.Body)
 	}
 }
 
 func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET /getMove from", r.RemoteAddr, ":", r.URL.Query())
+		ip := getIP(r)
+		log.Println("GET /getMove from", ip, ":", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			start := time.Now()
 			pgn := r.URL.Query().Get("pgn")
@@ -160,7 +226,7 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 			bestMove := <-pgnBestMoves
 			fmt.Fprintf(w, bestMove)
 			elapsed := time.Since(start)
-			log.Println("It took "+fmt.Sprintf("%s", elapsed)+" and answer is "+bestMove)
+			log.Println("It took " + fmt.Sprintf("%s", elapsed) + " and answer is " + bestMove)
 		} else {
 			fmt.Fprintf(w, "please provide pgn as uci moves")
 		}
@@ -169,7 +235,8 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 
 func getMoveUltraHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET /getMoveUltra from", r.RemoteAddr, ": ", r.URL.Query())
+		ip := getIP(r)
+		log.Println("GET /getMoveUltra from", ip, ": ", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			start := time.Now()
 			pgn := r.URL.Query().Get("pgn")
@@ -177,7 +244,7 @@ func getMoveUltraHandler(w http.ResponseWriter, r *http.Request) {
 			bestMove := <-pgnBestMovesUltra
 			fmt.Fprintf(w, bestMove)
 			elapsed := time.Since(start)
-			log.Println("It took "+fmt.Sprintf("%s", elapsed)+" and answer is "+bestMove)
+			log.Println("It took " + fmt.Sprintf("%s", elapsed) + " and answer is " + bestMove)
 		} else {
 			fmt.Fprintf(w, "please provide pgn as uci moves")
 		}
@@ -186,7 +253,8 @@ func getMoveUltraHandler(w http.ResponseWriter, r *http.Request) {
 
 func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		log.Println("GET /getMoveSlow from", r.RemoteAddr, ": ", r.URL.Query())
+		ip := getIP(r)
+		log.Println("GET /getMoveSlow from", ip, ": ", r.URL.Query())
 		if r.URL.Query().Get("pgn") != "" {
 			start := time.Now()
 			pgn := r.URL.Query().Get("pgn")
@@ -194,7 +262,7 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 			bestMove := <-pgnBestMovesSlow
 			fmt.Fprintf(w, bestMove)
 			elapsed := time.Since(start)
-			log.Println("It took "+fmt.Sprintf("%s", elapsed)+" and answer is "+bestMove)
+			log.Println("It took " + fmt.Sprintf("%s", elapsed) + " and answer is " + bestMove)
 		} else {
 			fmt.Fprintf(w, "please provide pgn as uci moves")
 		}
@@ -202,6 +270,7 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	httpClient = &http.Client{}
 	pathToDatas = "./Data/"
 	if len(os.Args) >= 2 {
 		logFilePath := os.Args[1]
@@ -227,6 +296,8 @@ func main() {
 	defer pSlow.Input.Close()
 	defer pUltra.Input.Close()
 
-	http.ListenAndServe(":80", defaultMux)
-
+	err := http.ListenAndServe(":80", defaultMux)
+	if err != nil {
+		log.Println(err)
+	}
 }
