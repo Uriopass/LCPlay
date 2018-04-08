@@ -44,11 +44,14 @@ func (c *CmdWrapper) openInput() {
 	}
 }
 
-var p *CmdWrapper
-var pSlow *CmdWrapper
-var pUltra *CmdWrapper
+var p *CmdWrapper = nil
+var pSlow *CmdWrapper = nil
+var pUltra *CmdWrapper = nil
+
+var curNetId uint = 0
 
 func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playouts string, pgnWaitListChan chan string, pgnBestMovesChan chan string) {
+	c.Consumes = true
 	c.BestMove = make(chan string)
 	c.Winrate = make(chan string)
 	weights := fmt.Sprintf("--weights=%s", networkPath)
@@ -130,7 +133,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 			case winr := <-c.Winrate:
 				select {
 				case best_move := <-c.BestMove:
-					pgnBestMovesChan <- best_move + ";" + winr
+					pgnBestMovesChan <- fmt.Sprintf("%v;%v;%v", best_move, winr, curNetId)
 				}
 			}
 			if !c.Consumes {
@@ -170,6 +173,7 @@ func getNetwork(sha string) (string, bool, error) {
 
 func updateNetwork() (bool, string) {
 	nextGame, err := NextGame(httpClient, HOSTNAME, getExtraParams())
+	log.Println(nextGame, err)
 	if err != nil {
 		log.Println(err)
 		return false, ""
@@ -180,6 +184,7 @@ func updateNetwork() (bool, string) {
 			log.Println(err)
 			return false, ""
 		}
+		curNetId = nextGame.NetworkId
 		return newNet, networkPath
 	}
 	return false, ""
@@ -224,7 +229,7 @@ func getMoveHandler(w http.ResponseWriter, r *http.Request) {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitList <- pgn
 			bestMove := <-pgnBestMoves
-			fmt.Fprintf(w, bestMove)
+			fmt.Fprint(w, bestMove)
 			elapsed := time.Since(start)
 			log.Println("It took " + fmt.Sprintf("%s", elapsed) + " and answer is " + bestMove)
 		} else {
@@ -242,7 +247,7 @@ func getMoveUltraHandler(w http.ResponseWriter, r *http.Request) {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitListUltra <- pgn
 			bestMove := <-pgnBestMovesUltra
-			fmt.Fprintf(w, bestMove)
+			fmt.Fprint(w, bestMove)
 			elapsed := time.Since(start)
 			log.Println("It took " + fmt.Sprintf("%s", elapsed) + " and answer is " + bestMove)
 		} else {
@@ -260,7 +265,7 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 			pgn := r.URL.Query().Get("pgn")
 			pgnWaitListSlow <- pgn
 			bestMove := <-pgnBestMovesSlow
-			fmt.Fprintf(w, bestMove)
+			fmt.Fprint(w, bestMove)
 			elapsed := time.Since(start)
 			log.Println("It took " + fmt.Sprintf("%s", elapsed) + " and answer is " + bestMove)
 		} else {
@@ -280,21 +285,34 @@ func main() {
 		}
 		defer f.Close()
 	}
-	net_name := "a8bd"
 	defaultMux := http.NewServeMux()
 	defaultMux.HandleFunc("/", defaultHandler)
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	defaultMux.HandleFunc("/getMoveUltra", getMoveUltraHandler)
-	p = CmdWrapper{}
-	p.launch("networks/"+net_name, nil, true, "200", pgnWaitList, pgnBestMoves)
-	pSlow = CmdWrapper{}
-	pSlow.launch("networks/"+net_name, nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
-	pUltra = CmdWrapper{}
-	pUltra.launch("networks/"+net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
-	defer p.Input.Close()
-	defer pSlow.Input.Close()
-	defer pUltra.Input.Close()
+
+	go func() {
+		for {
+			new_net, net_name := updateNetwork()
+			if new_net || p == nil {
+				if p != nil {
+					p.Consumes = false
+					pSlow.Consumes = false
+					pUltra.Consumes = false
+				}
+				p = &CmdWrapper{}
+				p.launch(net_name, nil, true, "200", pgnWaitList, pgnBestMoves)
+				pSlow = &CmdWrapper{}
+				pSlow.launch(net_name, nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+				pUltra = &CmdWrapper{}
+				pUltra.launch(net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
+				defer p.Input.Close()
+				defer pSlow.Input.Close()
+				defer pUltra.Input.Close()
+			}
+			time.Sleep(120 * time.Second)
+		}
+	}()
 
 	err := http.ListenAndServe(":80", defaultMux)
 	if err != nil {
