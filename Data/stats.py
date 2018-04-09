@@ -1,3 +1,5 @@
+import matplotlib as mpl
+mpl.use('Agg')
 import datetime
 import matplotlib.pyplot as plt
 from file_read_backwards import FileReadBackwards
@@ -24,7 +26,7 @@ def main():
 		
 	init_time = -1
 	bin_size = 3*60
-	with FileReadBackwards("G:\log.txt") as frb:
+	with FileReadBackwards(r"../log.txt") as frb:
 		for l in frb:
 			splitted = [x for x in l.split(" ") if x != ""]
 			t = parseTime(splitted)
