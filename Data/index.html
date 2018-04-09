@@ -45,6 +45,23 @@
 		a:visited {
 			color: #A74AC7;
 		}
+		
+		#historybox {
+			border: 1px solid darkgrey;
+			padding: 5px;
+			width: 175px;
+			height: 384px;
+			margin-right: 10px;
+			float: left;
+			overflow-y: scroll;
+		}
+		#fenbox {
+			width: 400px;
+			height: 20px;
+			overflow: hidden;
+			resize: none;
+			font-size: 11px;
+		}
 	</style>
 
 </head>
@@ -65,8 +82,16 @@
         <p style="color: white"><b><span id="status" ></span></b></p>
         <p style="color: white"><b><span id="winrate" ><br /><br /></span></b></p>
 		<div id="lol" style="margin-left: auto; margin-right: auto; width: 800px; height: 400px; color:white;">
-			<div id="board" style="float: left; margin-left: 200px;width: 400px"></div>
-			<div id = "controls" style="display: block; width: 200px;float: right;">
+		
+			<div id="historybox">
+				<b>Move History</b>
+				<hr />
+				<p style="color: white; text-align: left;">
+					<span id="history"></span>
+				</p>
+			</div>
+			<div id="board" style="float: left; margin-left: 5px; width: 400px"></div>
+			<div id = "controls" style="display: block; width: 198px;float: right;">
 				<input type="button" id="startPositionBtn" class="minimal" value="Restart Game" /> 
 				<input type="button" id="flipBtn" class="minimal" value="Flip the board ↺" /><br />
 				<input type="button" id="promoteBtn" class="minimal" value="Will promote to: Queen" />
@@ -83,6 +108,7 @@
 				</span>
 			</div>
 		</div>
+		<textarea id="fenbox" readonly onclick="this.focus();this.select()"></textarea>
 		<div>
         <p style="color: white">
             <b> If you want to help make Leela Chess Zero stronger, please think about contributing your GPU or CPU at <a href="http://lczero.org/" style=":visited {color: #8b00d0;}">http://lczero.org/</a> !</b>
@@ -95,14 +121,6 @@
 			In easy mode, Leela is not doing any calculations and is playing purely by insight, just taking the board and evaluating what looks interesting. <br />
         </p>
 		</div>
-        <div style="width: 400px; margin-left: auto; margin-right: auto;">
-            <p style="color: white; text-align: left">
-                <b>Move History: </b><br /><span id="history">Empty</span>
-            </p>
-			<br />
-			<br />
-			<br />
-        </div>
 
 
         <script src="js/json3.min.js"></script>
@@ -122,6 +140,7 @@
 			var reqMoveXhr = new XMLHttpRequest();
 			var preMove = "";
 			var thinking = false;
+			$("#fenbox").html(game.fen())
 			
 			function askMove() {
 				var askUrl = "getMove";
@@ -232,7 +251,9 @@
                 // update the board position after the piece snap 
                 // for castling, en passant, pawn promotion
                 var onSnapEnd = function() {
-                    board.position(game.fen());
+					var fen = game.fen();
+					$("#fenbox").html(fen)
+                    board.position(fen);
                     if (enabled && !game.game_over()) {
 						if(canMove) {
 							playComputer();
@@ -293,6 +314,7 @@
                     }
 
                     historyEl.html(htmlStr);
+					$("#historybox").scrollTop($("#historybox")[0].scrollHeight);
                 };
 
                 var cfg = {
@@ -309,6 +331,7 @@
 
                 $('#startPositionBtn').on('click', function() {
                     game = new Chess();
+					$("#fenbox").html(game.fen())
                     mv_history = "";
                     board.start();
                     updateStatus();
