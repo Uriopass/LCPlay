@@ -58,9 +58,9 @@
     </style>
     <script type="text/javascript">
     </script>
-    <h1 style="text-align:center; color: white"> Play against LCZero ID 102 </h1>
+    <h1 style="text-align:center; color: white"> Play against LCZero </h1>
     <div style="text-align: center;">
-	<i style="color: white"> 9th April 8 AM UTC : Upgraded to a better hardware, moves should be played faster!<br /></i>
+	<i style="color: white"> 9th April 8 AM UTC : Upgraded to a better hardware, moves should be played faster! Also network is always the latest one.<br /></i>
     <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
         <p style="color: white"><b><span id="winrate" ><br /><br /></span></b></p>
@@ -151,8 +151,9 @@
 						var move = reqMoveXhr.responseText.split(";")[0];
 						var wr = "";
 						if(move.length > 1) {
-							wr = reqMoveXhr.responseText.split(";")[1].split("!")[0];
-							$("#winrate").html("Leela thinks her expected score is "+wr+". <br />100% = win, 50% = draw, 0% = lose.");
+							wr = reqMoveXhr.responseText.split(";")[1];
+							id = reqMoveXhr.responseText.split(";")[2];
+							$("#winrate").html("Leela ID "+id+" thinks her expected score is "+wr+". <br />100% = win, 50% = draw, 0% = lose.");
 						}
 						from_sq = move[0] + move[1];
 						to_sq = move[2] + move[3];
