@@ -92,7 +92,10 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 				c.Winrate <- last
 				c.BestMove <- strings.Split(line, " ")[1]
 			} else if strings.HasPrefix(line, "info") {
-				last = strings.Split(strings.Split(line, "winrate ")[1], " time")[0]
+				truc := strings.Split(line, "winrate ")
+				if len(truc) > 1 {
+					last = strings.Split(truc[1], " time")[0]
+				}
 			} else {
 				log.Println("Weird line from lczero.exe " + line)
 			}
