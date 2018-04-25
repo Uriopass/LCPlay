@@ -61,7 +61,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	//c.Cmd.Args = append(c.Cmd.Args, "--quiet")
 	c.Cmd.Args = append(c.Cmd.Args, "-n")
 	c.Cmd.Args = append(c.Cmd.Args, "--noponder")
-	c.Cmd.Args = append(c.Cmd.Args, "-p"+playouts)
+	c.Cmd.Args = append(c.Cmd.Args, "-v"+playouts)
 
 	log.Printf("Args: %v\n", c.Cmd.Args)
 
@@ -151,7 +151,7 @@ func getExtraParams() map[string]string {
 	return map[string]string{
 		"user":     "iwontupload",
 		"password": "hunter2",
-		"version":  "4",
+		"version":  "7",
 	}
 }
 
