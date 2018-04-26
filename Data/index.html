@@ -77,7 +77,7 @@
     </script>
     <h1 style="text-align:center; color: white"> Play against LCZero </h1>
     <div style="text-align: center;">
-	<i style="color: white">  <br /></i>
+	<i style="color: white">26th April 8PM UTC: Playouts are now named nodes, and lowered node count for normal and hard as network is larger and stronger. Removed wait time for hard mode.<br /></i>
     <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
         <p style="color: white"><b><span id="winrate" ><br /><br /></span></b></p>
@@ -103,8 +103,7 @@
 				<input type="button" id="slowBtn" class="minimal" value="Hard" /><br />
 				<span style="text-align: left;position: relative; left:25px;">
 				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Current: <span id="curMode" style="color: white">Normal</span></b></p>
-				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Playouts: <span id="playouts" style="color: white">200</span></b></p>
-				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Wait time: <span id="timeLeft" style="color: white">0s</span></b></p>
+				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Nodes: <span id="playouts" style="color: white">50</span></b></p>
 				</span>
 			</div>
 		</div>
@@ -120,7 +119,14 @@
 			In hard mode, Leela should play much better, but it takes more calculations so you will have to wait 5 seconds after she answers not to overload the server. <br />
 			In easy mode, Leela is not doing any calculations and is playing purely by insight, just taking the board and evaluating what looks interesting. <br />
         </p>
-		</div>
+	<br />
+	<br />
+	<br />
+	<hr />
+	<p style="color: white">
+		This website is open-source, see the <a href="https://github.com/Uriopass/LCPlay">GitHub</a>.
+	</p>	
+	</div>
 
 
         <script src="js/json3.min.js"></script>
@@ -134,7 +140,7 @@
 			var historyEl = $('#history');
 			var mv_history = "";
 			var enabled = true;
-			var playouts = 200;
+			var playouts = 50;
 			var canMove = true;
 			var promotePiece = "q";
 			var reqMoveXhr = new XMLHttpRequest();
@@ -144,7 +150,7 @@
 			
 			function askMove() {
 				var askUrl = "getMove";
-				if (playouts == 2000) {
+				if (playouts == 400) {
 					askUrl = "getMoveSlow";
 				}
 				if (playouts == 1) {
@@ -188,26 +194,6 @@
 						onDrop(from_sq, to_sq);
 						board.position(game.fen());
 						promotePiece = oldPromote;
-						var timeWait = 5;
-						if (playouts == 2000) {
-							canMove = false;
-							var counter = timeWait;
-							for (var i = 0; i <= timeWait; i++) {
-								setTimeout(function() {
-									$("#timeLeft").html(counter + "s");
-									counter -= 1;
-									if (canMove) {
-										$("#status").html("Y u modify javascript :'( Doing it serverside is horrible");
-									}
-								}, i * 1000);
-							}
-							setTimeout(function() {
-								canMove = true;
-								if(preMove) {
-									playComputer();
-								}
-							}, timeWait*1000);
-						}
 					} else {
 						$("#status").html("There was an error asking Leela's move.. This page will retry in 5 seconds");
 						console.log("Weird..");
@@ -349,13 +335,13 @@
 
                 $('#slowBtn').on('click', function() {
                     $('#curMode').html("Hard");
-                    playouts = 2000;
+                    playouts = 400;
 					$('#playouts').html(playouts);
                 });
 				 
 				$('#fastBtn').on('click', function() {
                     $('#curMode').html("Normal");
-                    playouts = 200;
+                    playouts = 50;
 					$('#playouts').html(playouts);
                 });
 				

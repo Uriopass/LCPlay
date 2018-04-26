@@ -303,10 +303,10 @@ func main() {
 					pUltra.Consumes = false
 				}
 				p = &CmdWrapper{}
-				p.launch(net_name, nil, true, "200", pgnWaitList, pgnBestMoves)
+				p.launch(net_name, nil, true, "50", pgnWaitList, pgnBestMoves)
 				time.Sleep(5 * time.Second)
 				pSlow = &CmdWrapper{}
-				pSlow.launch(net_name, nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+				pSlow.launch(net_name, nil, true, "400", pgnWaitListSlow, pgnBestMovesSlow)
 				time.Sleep(5 * time.Second)
 				pUltra = &CmdWrapper{}
 				pUltra.launch(net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
