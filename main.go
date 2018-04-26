@@ -60,7 +60,6 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
 	//c.Cmd.Args = append(c.Cmd.Args, "--quiet")
 	c.Cmd.Args = append(c.Cmd.Args, "-n")
-	c.Cmd.Args = append(c.Cmd.Args, "--noponder")
 	c.Cmd.Args = append(c.Cmd.Args, "-v"+playouts)
 
 	log.Printf("Args: %v\n", c.Cmd.Args)
@@ -94,7 +93,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 			} else if strings.HasPrefix(line, "info") {
 				truc := strings.Split(line, "winrate ")
 				if len(truc) > 1 {
-					last = strings.Split(truc[1], " time")[0]
+					last = truc[1]
 				}
 			} else {
 				log.Println("Weird line from lczero.exe " + line)
@@ -151,7 +150,7 @@ func getExtraParams() map[string]string {
 	return map[string]string{
 		"user":     "iwontupload",
 		"password": "hunter2",
-		"version":  "7",
+		"version":  "8",
 	}
 }
 
@@ -305,8 +304,10 @@ func main() {
 				}
 				p = &CmdWrapper{}
 				p.launch(net_name, nil, true, "200", pgnWaitList, pgnBestMoves)
+				time.Sleep(5 * time.Second)
 				pSlow = &CmdWrapper{}
 				pSlow.launch(net_name, nil, true, "2000", pgnWaitListSlow, pgnBestMovesSlow)
+				time.Sleep(5 * time.Second)
 				pUltra = &CmdWrapper{}
 				pUltra.launch(net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
 				defer p.Input.Close()
@@ -317,7 +318,7 @@ func main() {
 		}
 	}()
 
-	err := http.ListenAndServe(":7461", defaultMux)
+	err := http.ListenAndServe(":7462", defaultMux)
 	if err != nil {
 		log.Println(err)
 	}
