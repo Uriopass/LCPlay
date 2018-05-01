@@ -278,13 +278,6 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	httpClient = &http.Client{}
-
-	httpServer := &http.Server{
-		Addr: ":7061",
-		Handler: defaultMux,
-		ReadTimeout: 5 * time.Second,
-		WriteTimeout: 300 * time.Second,
-	}
 	pathToDatas = "./Data/"
 	if len(os.Args) >= 2 {
 		logFilePath := os.Args[1]
@@ -299,6 +292,12 @@ func main() {
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	defaultMux.HandleFunc("/getMoveUltra", getMoveUltraHandler)
+		httpServer := &http.Server{
+		Addr: ":7461",
+		Handler: defaultMux,
+		ReadTimeout: 5 * time.Second,
+		WriteTimeout: 300 * time.Second,
+	}
 
 	go func() {
 		for {
@@ -325,7 +324,7 @@ func main() {
 		}
 	}()
 
-	err := httpServer.ListenAndServe(":7462", defaultMux)
+	err := httpServer.ListenAndServe()
 	if err != nil {
 		log.Println(err)
 	}
