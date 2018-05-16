@@ -59,7 +59,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
 	//c.Cmd.Args = append(c.Cmd.Args, "--quiet")
-	c.Cmd.Args = append(c.Cmd.Args, "-n")
+	c.Cmd.Args = append(c.Cmd.Args, "--tempdecay=15")
 	c.Cmd.Args = append(c.Cmd.Args, "-v"+playouts)
 
 	log.Printf("Args: %v\n", c.Cmd.Args)
@@ -150,7 +150,7 @@ func getExtraParams() map[string]string {
 	return map[string]string{
 		"user":     "iwontupload",
 		"password": "hunter2",
-		"version":  "8",
+		"version":  "10",
 	}
 }
 
@@ -310,10 +310,10 @@ func main() {
 				}
 				p = &CmdWrapper{}
 				p.launch(net_name, nil, true, "50", pgnWaitList, pgnBestMoves)
-				time.Sleep(5 * time.Second)
+				
 				pSlow = &CmdWrapper{}
 				pSlow.launch(net_name, nil, true, "400", pgnWaitListSlow, pgnBestMovesSlow)
-				time.Sleep(5 * time.Second)
+				
 				pUltra = &CmdWrapper{}
 				pUltra.launch(net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
 				defer p.Input.Close()
