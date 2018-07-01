@@ -292,10 +292,10 @@ func main() {
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	defaultMux.HandleFunc("/getMoveUltra", getMoveUltraHandler)
-		httpServer := &http.Server{
-		Addr: ":7461",
-		Handler: defaultMux,
-		ReadTimeout: 5 * time.Second,
+	httpServer := &http.Server{
+		Addr:         ":7461",
+		Handler:      defaultMux,
+		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 300 * time.Second,
 	}
 
@@ -310,10 +310,10 @@ func main() {
 				}
 				p = &CmdWrapper{}
 				p.launch(net_name, nil, true, "50", pgnWaitList, pgnBestMoves)
-				
+
 				pSlow = &CmdWrapper{}
 				pSlow.launch(net_name, nil, true, "400", pgnWaitListSlow, pgnBestMovesSlow)
-				
+
 				pUltra = &CmdWrapper{}
 				pUltra.launch(net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
 				defer p.Input.Close()
