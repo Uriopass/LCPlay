@@ -25,7 +25,7 @@ var pgnWaitListUltra = make(chan string)
 var pgnBestMovesUltra = make(chan string)
 
 var httpClient *http.Client
-var HOSTNAME = "http://162.217.248.187"
+var HOSTNAME = "http://testserver.lczero.org/"
 
 type CmdWrapper struct {
 	Cmd      *exec.Cmd
@@ -58,9 +58,10 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	c.Cmd = exec.Command("./lczero", weights, "-t1")
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
-	//c.Cmd.Args = append(c.Cmd.Args, "--quiet")
-	c.Cmd.Args = append(c.Cmd.Args, "--tempdecay=15")
-	c.Cmd.Args = append(c.Cmd.Args, "-v"+playouts)
+	c.Cmd.Args = append(c.Cmd.Args, "--temperature=0.1")
+	c.Cmd.Args = append(c.Cmd.Args, "--tempdecay-moves=10")
+	//c.Cmd.Args = append(c.Cmd.Args, "-v"+playouts)
+	c.Cmd.Args = append(c.Cmd.Args, "--backend=blas")
 
 	log.Printf("Args: %v\n", c.Cmd.Args)
 
@@ -128,8 +129,8 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 				io.WriteString(c.Input, "position startpos \n")
 			}
 
-			log.Println("go playouts " + playouts)
-			io.WriteString(c.Input, "go \n")
+			log.Println("go nodes " + playouts)
+			io.WriteString(c.Input, "go nodes " + playouts + " \n")
 
 			select {
 			case winr := <-c.Winrate:
