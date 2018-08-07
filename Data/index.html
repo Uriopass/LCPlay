@@ -77,7 +77,7 @@
     </script>
     <h1 style="text-align:center; color: white"> Play against LCZero </h1>
     <div style="text-align: center;">
-	<i style="color: white">1st May 4PM UTC : Leela now uses tempdecay instead of noise, you should see more variety in the opening!<br /></i>
+	<i style="color: white">7th July 2PM UTC : Switched to <a href="http://testserver.lczero.org/">testserver</a>'s network, also switched to lc0 engine.<br /></i>
     <hr/>
         <p style="color: white"><b><span id="status" ></span></b></p>
         <p style="color: white"><b><span id="winrate" ><br /><br /></span></b></p>
@@ -178,7 +178,7 @@
 						if(move.length > 1) {
 							wr = reqMoveXhr.responseText.split(";")[1];
 							id = reqMoveXhr.responseText.split(";")[2];
-							$("#winrate").html("Leela ID "+id+" thinks her expected score is "+wr+". <br />100% = win, 50% = draw, 0% = lose.");
+							$("#winrate").html("Leela ID "+id+" thinks her centipawn advantage is "+wr+".");
 						}
 						from_sq = move[0] + move[1];
 						to_sq = move[2] + move[3];

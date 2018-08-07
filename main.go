@@ -25,7 +25,7 @@ var pgnWaitListUltra = make(chan string)
 var pgnBestMovesUltra = make(chan string)
 
 var httpClient *http.Client
-var HOSTNAME = "http://testserver.lczero.org/"
+var HOSTNAME = "http://testserver.lczero.org"
 
 type CmdWrapper struct {
 	Cmd      *exec.Cmd
@@ -55,13 +55,13 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	c.BestMove = make(chan string)
 	c.Winrate = make(chan string)
 	weights := fmt.Sprintf("--weights=%s", networkPath)
-	c.Cmd = exec.Command("./lczero", weights, "-t1")
+	c.Cmd = exec.Command("./lc0", weights)
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
 	c.Cmd.Args = append(c.Cmd.Args, "--temperature=0.1")
 	c.Cmd.Args = append(c.Cmd.Args, "--tempdecay-moves=10")
-	//c.Cmd.Args = append(c.Cmd.Args, "-v"+playouts)
-	c.Cmd.Args = append(c.Cmd.Args, "--backend=blas")
+	c.Cmd.Args = append(c.Cmd.Args, "--threads=1")
+	c.Cmd.Args = append(c.Cmd.Args, "--backend=opencl")
 
 	log.Printf("Args: %v\n", c.Cmd.Args)
 
@@ -81,7 +81,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 		last := ""
 		for stdoutScanner.Scan() {
 			line := stdoutScanner.Text()
-			//log.Printf("Playouts: %v said %s\n", playouts, line)
+			log.Printf("Playouts: %v said %s\n", playouts, line)
 			if line == "PGN" {
 				reading_pgn = true
 			} else if line == "END" {
@@ -92,9 +92,9 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 				c.Winrate <- last
 				c.BestMove <- strings.Split(line, " ")[1]
 			} else if strings.HasPrefix(line, "info") {
-				truc := strings.Split(line, "winrate ")
+				truc := strings.Split(line, "cp ")
 				if len(truc) > 1 {
-					last = truc[1]
+					last = strings.Split(truc[1], " ")[0]
 				}
 			} else {
 				log.Println("Weird line from lczero.exe " + line)
@@ -105,7 +105,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	go func() {
 		stderrScanner := bufio.NewScanner(stderr)
 		for stderrScanner.Scan() {
-			//log.Printf("%s\n", stderrScanner.Text())
+			log.Printf("%s\n", stderrScanner.Text())
 		}
 	}()
 
@@ -151,7 +151,7 @@ func getExtraParams() map[string]string {
 	return map[string]string{
 		"user":     "iwontupload",
 		"password": "hunter2",
-		"version":  "10",
+		"version":  "16",
 	}
 }
 
