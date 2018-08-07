@@ -91,7 +91,7 @@
 				</p>
 			</div>
 			<div id="board" style="float: left; margin-left: 5px; width: 400px"></div>
-			<div id = "controls" style="display: block; width: 198px;float: right;">
+			<div id = "controls" style="display: block; width: 198px;float: right;height:400px;">
 				<input type="button" id="startPositionBtn" class="minimal" value="Restart Game" /> 
 				<input type="button" id="flipBtn" class="minimal" value="Flip the board ↺" /><br />
 				<input type="button" id="promoteBtn" class="minimal" value="Will promote to: Queen" />
@@ -101,6 +101,7 @@
 				<input type="button" id="ultrafastBtn" class="minimal" value="Easy" /><br />
 				<input type="button" id="fastBtn" class="minimal" value="Normal" /><br />
 				<input type="button" id="slowBtn" class="minimal" value="Hard" /><br />
+				<input type="button" id="hardcoreBtn" class="minimal" value="Hardcore" /><br />
 				<span style="text-align: left;position: relative; left:25px;">
 				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Current: <span id="curMode" style="color: white">Normal</span></b></p>
 				<p style="margin-top: 10px; margin-bottom: 1px;"><b>Nodes: <span id="playouts" style="color: white">50</span></b></p>
@@ -155,6 +156,9 @@
 				}
 				if (playouts == 1) {
 					askUrl = "getMoveUltra";
+				}
+				if (playouts == 2000) {
+					askUrl = "getMoveHardcore";
 				}
 				var historyStr = mv_history;
 				if (mv_history == "") {
@@ -348,6 +352,12 @@
 				$('#ultrafastBtn').on('click', function() {
                     $('#curMode').html("Easy");
                     playouts = 1;
+					$('#playouts').html(playouts);
+                });
+				
+				$('#hardcoreBtn').on('click', function() {
+                    $('#curMode').html("Hardcore");
+                    playouts = 2000;
 					$('#playouts').html(playouts);
                 });
 

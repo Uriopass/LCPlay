@@ -24,6 +24,9 @@ var pgnBestMovesSlow = make(chan string)
 var pgnWaitListUltra = make(chan string)
 var pgnBestMovesUltra = make(chan string)
 
+var pgnWaitListHardcore = make(chan string)
+var pgnBestMovesHardcore = make(chan string)
+
 var httpClient *http.Client
 var HOSTNAME = "http://testserver.lczero.org"
 
@@ -47,6 +50,7 @@ func (c *CmdWrapper) openInput() {
 var p *CmdWrapper = nil
 var pSlow *CmdWrapper = nil
 var pUltra *CmdWrapper = nil
+var pHardcore *CmdWrapper = nil
 
 var curNetId uint = 0
 
@@ -277,6 +281,24 @@ func getMoveSlowHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getMoveHardcoreHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		ip := getIP(r)
+		log.Println("GET /getMoveHardcore from", ip, ": ", r.URL.Query())
+		if r.URL.Query().Get("pgn") != "" {
+			start := time.Now()
+			pgn := r.URL.Query().Get("pgn")
+			pgnWaitListHardcore <- pgn
+			bestMove := <-pgnBestMovesHardcore
+			fmt.Fprint(w, bestMove)
+			elapsed := time.Since(start)
+			log.Println("It took " + fmt.Sprintf("%s", elapsed) + " and answer is " + bestMove)
+		} else {
+			fmt.Fprintf(w, "please provide pgn as uci moves")
+		}
+	}
+}
+
 func main() {
 	httpClient = &http.Client{}
 	pathToDatas = "./Data/"
@@ -293,6 +315,8 @@ func main() {
 	defaultMux.HandleFunc("/getMove", getMoveHandler)
 	defaultMux.HandleFunc("/getMoveSlow", getMoveSlowHandler)
 	defaultMux.HandleFunc("/getMoveUltra", getMoveUltraHandler)
+	defaultMux.HandleFunc("/getMoveHardcore", getMoveHardcoreHandler)
+	
 	httpServer := &http.Server{
 		Addr:         ":7461",
 		Handler:      defaultMux,
@@ -308,6 +332,7 @@ func main() {
 					p.Consumes = false
 					pSlow.Consumes = false
 					pUltra.Consumes = false
+					pHardcore.Consumes = false
 				}
 				p = &CmdWrapper{}
 				p.launch(net_name, nil, true, "50", pgnWaitList, pgnBestMoves)
@@ -317,9 +342,13 @@ func main() {
 
 				pUltra = &CmdWrapper{}
 				pUltra.launch(net_name, nil, true, "1", pgnWaitListUltra, pgnBestMovesUltra)
+				
+				pHardcore = &CmdWrapper{}
+				pHardcore.launch(net_name, nil, true, "2000", pgnWaitListHardcore, pgnBestMovesHardcore)
 				defer p.Input.Close()
 				defer pSlow.Input.Close()
 				defer pUltra.Input.Close()
+				defer pHardcore.Input.Close()
 			}
 			time.Sleep(120 * time.Second)
 		}
