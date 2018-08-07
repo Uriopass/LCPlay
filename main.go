@@ -61,7 +61,7 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	c.Cmd.Args = append(c.Cmd.Args, "--temperature=0.1")
 	c.Cmd.Args = append(c.Cmd.Args, "--tempdecay-moves=10")
 	c.Cmd.Args = append(c.Cmd.Args, "--threads=1")
-	c.Cmd.Args = append(c.Cmd.Args, "--backend=opencl")
+//	c.Cmd.Args = append(c.Cmd.Args, "--backend=opencl")
 
 	log.Printf("Args: %v\n", c.Cmd.Args)
 
