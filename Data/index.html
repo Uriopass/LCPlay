@@ -197,6 +197,8 @@
 
 						onDrop(from_sq, to_sq);
 						board.position(game.fen());
+						
+						$("#fenbox").html(game.fen())
 						promotePiece = oldPromote;
 					} else {
 						$("#status").html("There was an error asking Leela's move.. This page will retry in 5 seconds");
