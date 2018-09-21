@@ -62,8 +62,9 @@ func (c *CmdWrapper) launch(networkPath string, args []string, input bool, playo
 	c.Cmd = exec.Command("./lc0", weights)
 	c.Cmd.Args = append(c.Cmd.Args, args...)
 	//c.Cmd.Args = append(c.Cmd.Args, "--gpu=1")
-	c.Cmd.Args = append(c.Cmd.Args, "--temperature=0.5")
+	c.Cmd.Args = append(c.Cmd.Args, "--temperature=0.4")
 	c.Cmd.Args = append(c.Cmd.Args, "--tempdecay-moves=20")
+	c.Cmd.Args = append(c.Cmd.Args, "--futile-search-aversion=0")
 	c.Cmd.Args = append(c.Cmd.Args, "--threads=1")
 
 
